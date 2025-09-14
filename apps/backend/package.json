@@ -1,0 +1,13 @@
+{
+  "name": "webappbackend",
+  "private": true,
+  "scripts": {
+    "build": "echo \"no build step\"",
+    "dev": "node -e \"console.log('Run locally via vercel dev')\""
+  },
+  "devDependencies": {
+    "@vercel/node": "^3.0.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^20.12.0"
+  }
+}

@@ -1,5 +1,3 @@
 {
-  "redirects": [
-    { "source": "/(.*)", "destination": "https://web-maeprakham.vercel.app/$1", "permanent": false }
-  ]
+  "version": 2
 }
