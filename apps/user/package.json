@@ -6,7 +6,5 @@
     "build": "vite build",
     "preview": "vite preview --port 4173"
   },
-  "devDependencies": {
-    "vite": "^5.0.0"
-  }
+  "devDependencies": { "vite": "^5.0.0" }
 }
