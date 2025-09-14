@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบลูกค้า + แต้มสะสม</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+</head>
+<body class="bg-gray-100 p-6 flex flex-col items-center min-h-screen">
+
+  <div class="header">
+    <div class="img max-w-96 mb-4">
+      <img src="img/6.png" alt="" class="w-full">
+    </div>
+  </div>
+
+  <!-- ปุ่มเปลี่ยนภาษา -->
+  <div class="text-right w-full max-w-md mb-4">
+    <button id="langToggleBtn" onclick="toggleLanguage()" class="bg-blue-500 text-white px-3 py-1 rounded-lg"
+      data-i18n="langToggle">🌐 EN</button>
+  </div>
+
+  <!-- ปุ่มเมนูหลัก -->
+  <div class="w-full flex justify-center mb-4">
+    <div class="w-full max-w-md space-y-4">
+      <div class="flex justify-between gap-4">
+        <button onclick="toggleSection('register')"
+          class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-full font-bold shadow">
+          <h1 data-i18n="signupTitle">📝 สมัครสมาชิก</h1>
+        </button>
+        <button onclick="toggleSection('search')"
+          class="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-full font-bold shadow">
+          <h1 data-i18n="signinTitle">🔐 เข้าสู่ระบบ</h1>
+        </button>
+      </div>
+      <div class="flex justify-between gap-4">
+        <button onclick="toggleSection('rewardSection')"
+          class="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-full font-bold shadow">
+          <h1 data-i18n="rewardTitle">🎁 ของรางวัล</h1>
+        </button>
+        <a href="https://www.facebook.com/Meaprakham01" target="_blank" class="flex-1">
+          <button class="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-full font-bold shadow">
+            <h1 data-i18n="followTitle">📣 ติดตามข่าวสาร</h1>
+          </button>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- สมัครสมาชิก -->
+  <div id="register" class="section hidden bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+    <h2 class="text-xl font-bold mb-4" data-i18n="registerHeader">📝 สมัครสมาชิก</h2>
+    <h2 class="font-bold mb-2" data-i18n="registerNote">(สมัครครั้งแรกรับไปเลย 5 แต้ม)</h2>
+
+    <input id="registerName" type="text" placeholder="🧑 ชื่อเล่น (จำเป็น)" class="border rounded p-2 w-full mb-3" />
+    <input id="registerPhone" type="text" placeholder="📱 เบอร์โทร เช่น 0881234567"
+      class="border rounded p-2 w-full mb-3" />
+
+    <label class="text-sm text-gray-700 mb-1 block">🎂 วันเกิด (ถ้าอยากรับโปรวันเกิด)</label>
+    <input id="registerBirthday" type="date" class="border rounded p-2 w-full mb-3" />
+
+    <button onclick="registerUser()" class="bg-blue-500 text-white py-2 rounded w-full" data-i18n="registerButton">✅ สมัคร</button>
+    <div id="registerResult" class="mt-4 text-xl"></div>
+  </div>
+
+  <!-- เข้าสู่ระบบ -->
+  <div id="search" class="section hidden bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+    <h2 class="text-xl font-bold mb-4" data-i18n="signinTitle">🔐 เข้าสู่ระบบ</h2>
+    <input id="searchPhone" type="text" data-i18n-placeholder="signinPlaceholder" placeholder="📞 เบอรโทร"
+      class="border rounded p-2 w-full mb-3" />
+    <button onclick="searchPhone()" class="bg-green-500 text-white py-2 rounded w-full" data-i18n="signinButton">🔐 เข้าสู่ระบบ</button>
+    <div id="result" class="mt-4 text-xl"></div>
+  </div>
+
+  <!-- ของรางวัล -->
+  <div id="rewardSection" class="section hidden bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+    <h2 class="text-lg font-semibold text-center mb-4" data-i18n="rewardTitle">🎁 ของรางวัล</h2>
+    <div id="rewardGrid" class="grid grid-cols-1 gap-4"></div>
+  </div>
+
+  <!-- บัตรแต้มสะสม -->
+  <div id="flipCardSection" class="w-full max-w-[360px] aspect-[2/3] mx-auto flex flex-col items-center hidden">
+    <div class="card-container w-[50%] h-[50%]">
+      <div id="flipCard" class="card w-full h-full relative">
+        <div class="card-face bg-[url('img/card.png')] bg-cover bg-center text-white p-1 rounded-xl shadow-lg flex flex-col justify-center items-center gap-3"
+             onclick="flipCard()">
+          <h1 class="mt-10">ข้อมูลลูกค้า</h1>
+          <div class="flex flex-col justify-center gap-1 w-full text-center ">
+            <p class="text-[0.8rem]">ชื่อ: <span id="nameText" class="text-[1rem]">-</span></p>
+            <p class="text-[0.8rem]">วันเกิด: <span id="birthdayText" class="text-[0.8rem]">-</span></p>
+            <p class="text-[0.8rem]">แต้มสะสม: <span id="pointsText" class="text-[1.5rem]"></span> เเต้ม</p>
+            <p class="absolute right-0 left-0 bottom-3 text-sm mt-4 italic outline-violet-50">แตะเพื่อดู QR Code</p>
+          </div>
+        </div>
+
+        <div class="card-face card-back bg-[url('img/card.png')] bg-cover bg-center text-white p-6 rounded-xl shadow-lg flex flex-col justify-center items-center"
+             onclick="flipCard()">
+          <div class="absolute mt-12 flex flex-col items-center justify-center w-full gap-3">
+            <div id="qrCodeContainer" class="w-[50%] flex justify-center p-2 bg-white rounded"></div>
+            <p id="qrPhoneLabel" class="text-[1rem] text-white font-semibold">-</p>
+            <button onclick="downloadQR(event)" class="bg-blue-500 hover:bg-blue-600 text-white text-sm rounded shadow p-1">ดาวน์โหลด QR Code</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4 flex flex-col justify-center">
+      <div class="justify-center">
+        <p>ของรางวัลล่าสุด: <span id="rewardText">-</span></p>
+        <p>เวลาที่แลกล่าสุด: <span id="timeText">-</span></p>
+      </div>
+      <div class="flex gap-2 justify-center">
+        <button id="changeNameBtn"
+          onclick="changeName(document.getElementById('qrPhoneLabel').textContent.replace('เบอร์โทร: ', ''))"
+          class="bg-yellow-400 text-white px-4 py-2 rounded shadow">
+          🖋 เปลี่ยนชื่อ
+        </button>
+        <button id="logoutBtn" onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded shadow">
+          🔒 ออก
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- โหลดสคริปต์แบบ ES Module -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
