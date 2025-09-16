@@ -136,13 +136,13 @@
   </div>
 
   <!-- Modal QR Scanner -->
-  <div id="qrModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative">
-      <!-- ปุ่มปิด -->
+  <div id="qrModal" class="fixed inset-0 bg-black/60 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-2xl shadow-xl p-4 w-[92vw] max-w-md relative">
       <button onclick="closeQrModal()"
-        class="absolute top-2 right-2 text-gray-600 hover:text-red-600 text-2xl">&times;</button>
-      <h2 class="text-lg font-bold mb-2">📷 สแกน QR</h2>
-      <div id="qrReader" class="w-[300px] h-[300px] mx-auto"></div>
+        class="absolute top-2 right-3 text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+      <h2 class="text-lg font-bold mb-3 text-center">📷 สแกน QR</h2>
+      <div id="qrReader" class="mx-auto w-[300px] h-[300px]"></div>
+      <p class="text-xs text-gray-500 mt-3 text-center">หลังสแกนเสร็จ ระบบจะปิดป็อปอัปให้อัตโนมัติ</p>
     </div>
   </div>
 
