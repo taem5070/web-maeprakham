@@ -129,11 +129,23 @@
         <span data-text>🎁 แลกของรางวัล</span>
       </button>
 
-      <div id="redeemResult" class="mt-4 text-lg"></div>
-      <div id="reader" class="mt-4 hidden mx-auto w-[300px] h-[300px]"></div>
+      <!-- <div id="redeemResult" class="mt-4 text-lg"></div>
+      <div id="reader" class="mt-4 hidden mx-auto w-[300px] h-[300px]"></div> -->
     </div>
 
   </div>
+
+  <!-- Modal QR Scanner -->
+  <div id="qrModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-lg p-4 max-w-md w-full relative">
+      <!-- ปุ่มปิด -->
+      <button onclick="closeQrModal()"
+        class="absolute top-2 right-2 text-gray-600 hover:text-red-600 text-2xl">&times;</button>
+      <h2 class="text-lg font-bold mb-2">📷 สแกน QR</h2>
+      <div id="qrReader" class="w-[300px] h-[300px] mx-auto"></div>
+    </div>
+  </div>
+
   <!-- สแกนเนอร์ QR -->
   <!-- <script src="https://unpkg.com/html5-qrcode" defer></script> -->
   <script type="module" src="app.js"></script>

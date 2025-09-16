@@ -2,7 +2,7 @@
 import {
   sha256,
   getStaffByUsername,
-  getStaffProfile,      // (เผื่อใช้ต่อยอด)
+  getStaffProfile,
   listActiveRewards,
   addPointsToMember,
   redeemReward
@@ -26,11 +26,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.warn("LIFF init error:", e);
   }
 
-  // บังคับมี access_token
+  // บังคับมี access_token (หากเปิดจาก LINE)
   const ok = await ensureLiffLogin();
-  if (!ok) return;
+  if (!ok && window.liff) return;
 
-  // bind ปุ่ม Login (HTML ไม่มี onclick แล้ว)
+  // bind ปุ่ม Login
   const btn = document.getElementById("loginBtn");
   if (btn) btn.addEventListener("click", login);
 
@@ -75,9 +75,7 @@ function restoreLogin() {
 }
 
 function logoutStaff() {
-  stopHtml5Scanner("add");
-  stopHtml5Scanner("redeem");
-
+  closeQrModal(true);
   localStorage.removeItem("staffId");
   localStorage.removeItem("staffName");
   localStorage.removeItem("branchId");
@@ -296,34 +294,15 @@ async function loadRewardsCatalog() {
   }
 }
 
-/* ============ QR Scan ============ */
-let html5QrAdd = null;
-let html5QrRedeem = null;
+/* ============ QR Scan: Modal Popup (สี่เหลี่ยมจัตุรัส) ============ */
+let qrScanner = null;
 
-function stopHtml5Scanner(kind) {
-  const map = {
-    add: { inst: html5QrAdd, elId: "reader-add" },
-    redeem: { inst: html5QrRedeem, elId: "reader" }
-  };
-  const m = map[kind];
-  if (!m) return;
-  const el = document.getElementById(m.elId);
-  if (m.inst) {
-    m.inst.stop().then(() => {
-      m.inst.clear();
-      if (el) el.classList.add("hidden");
-    }).catch(() => {
-      if (el) el.classList.add("hidden");
-    });
-  } else if (el) {
-    el.classList.add("hidden");
-  }
-  if (kind === "add") html5QrAdd = null;
-  if (kind === "redeem") html5QrRedeem = null;
+function canUseLiffScanner() {
+  return (window.liff && typeof liff.isInClient === "function" && liff.isInClient() && liff.scanCodeV2);
 }
 
 async function startScannerForAddPoint() {
-  if (window.liff && typeof liff.isInClient === "function" && liff.isInClient() && liff.scanCodeV2) {
+  if (canUseLiffScanner()) {
     const ok = await ensureLiffLogin();
     if (!ok) return;
     try {
@@ -335,28 +314,11 @@ async function startScannerForAddPoint() {
     }
     return;
   }
-
-  const reader = document.getElementById("reader-add");
-  reader.classList.remove("hidden");
-  try {
-    html5QrAdd = new Html5Qrcode("reader-add");
-    await html5QrAdd.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      (decodedText) => {
-        document.getElementById("addPointPhone").value = (decodedText || "").trim();
-        stopHtml5Scanner("add");
-        alert("✅ สแกนสำเร็จ!");
-      }
-    );
-  } catch (e) {
-    alert("❌ เปิดกล้องไม่สำเร็จ: " + (e?.message || e));
-    stopHtml5Scanner("add");
-  }
+  openQrModal("add");
 }
 
 async function startScannerForRedeem() {
-  if (window.liff && typeof liff.isInClient === "function" && liff.isInClient() && liff.scanCodeV2) {
+  if (canUseLiffScanner()) {
     const ok = await ensureLiffLogin();
     if (!ok) return;
     try {
@@ -368,27 +330,52 @@ async function startScannerForRedeem() {
     }
     return;
   }
+  openQrModal("redeem");
+}
 
-  const reader = document.getElementById("reader");
-  reader.classList.remove("hidden");
-  try {
-    html5QrRedeem = new Html5Qrcode("reader");
-    await html5QrRedeem.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      (decodedText) => {
-        document.getElementById("redeemPhone").value = (decodedText || "").trim();
-        stopHtml5Scanner("redeem");
-        alert("✅ สแกนสำเร็จ!");
-      }
-    );
-  } catch (e) {
-    alert("❌ เปิดกล้องไม่สำเร็จ: " + (e?.message || e));
-    stopHtml5Scanner("redeem");
+function openQrModal(kind) {
+  const modal = document.getElementById("qrModal");
+  const container = document.getElementById("qrReader");
+  if (!modal || !container) return;
+
+  modal.classList.remove("hidden");
+  container.innerHTML = ""; // reset instance
+
+  qrScanner = new Html5Qrcode("qrReader");
+
+  qrScanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 280, height: 280 } }, // กรอบสี่เหลี่ยมจัตุรัส
+    (decodedText) => {
+      const value = (decodedText || "").trim();
+      if (kind === "add") document.getElementById("addPointPhone").value = value;
+      if (kind === "redeem") document.getElementById("redeemPhone").value = value;
+      closeQrModal();
+      alert("✅ สแกนสำเร็จ!");
+    }
+  ).catch(err => {
+    alert("❌ เปิดกล้องไม่สำเร็จ: " + (err?.message || err));
+    closeQrModal();
+  });
+}
+
+function closeQrModal(forceOnlyHide = false) {
+  const modal = document.getElementById("qrModal");
+  if (modal) modal.classList.add("hidden");
+
+  if (forceOnlyHide) return;
+
+  if (qrScanner) {
+    qrScanner.stop().then(() => {
+      qrScanner.clear();
+      qrScanner = null;
+    }).catch(() => {
+      qrScanner = null;
+    });
   }
 }
 
-/* ============ Expose to HTML (สำหรับ onclick อื่น ๆ) ============ */
+/* ============ Expose to HTML ============ */
 window.login = login;
 window.logoutStaff = logoutStaff;
 window.addPoints = addPoints;
@@ -397,3 +384,4 @@ window.showSection = showSection;
 window.startScannerForAddPoint = startScannerForAddPoint;
 window.startScannerForRedeem = startScannerForRedeem;
 window.loadRewardsCatalog = loadRewardsCatalog;
+window.closeQrModal = closeQrModal;
