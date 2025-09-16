@@ -29,7 +29,7 @@ async function ensureLiffLogin() {
 /* ===================== LIFF ===================== */
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    await liff.init({ liffId: "2007661818-xObDmNRP" });
+    await liff.init({ liffId: "2007661818-nmBNkzZ5" });
   } catch (e) {
     console.warn("LIFF init error:", e);
   }
