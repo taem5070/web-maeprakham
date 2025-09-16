@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,6 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
 </head>
+
 <body class="bg-gray-100 p-6 flex flex-col items-center min-h-screen">
 
   <div class="header">
@@ -61,7 +63,8 @@
     <label class="text-sm text-gray-700 mb-1 block">🎂 วันเกิด (ถ้าอยากรับโปรวันเกิด)</label>
     <input id="registerBirthday" type="date" class="border rounded p-2 w-full mb-3" />
 
-    <button onclick="registerUser()" class="bg-blue-500 text-white py-2 rounded w-full" data-i18n="registerButton">✅ สมัคร</button>
+    <button onclick="registerUser()" class="bg-blue-500 text-white py-2 rounded w-full" data-i18n="registerButton">✅
+      สมัคร</button>
     <div id="registerResult" class="mt-4 text-xl"></div>
   </div>
 
@@ -70,7 +73,8 @@
     <h2 class="text-xl font-bold mb-4" data-i18n="signinTitle">🔐 เข้าสู่ระบบ</h2>
     <input id="searchPhone" type="text" data-i18n-placeholder="signinPlaceholder" placeholder="📞 เบอรโทร"
       class="border rounded p-2 w-full mb-3" />
-    <button onclick="searchPhone()" class="bg-green-500 text-white py-2 rounded w-full" data-i18n="signinButton">🔐 เข้าสู่ระบบ</button>
+    <button onclick="searchPhone()" class="bg-green-500 text-white py-2 rounded w-full" data-i18n="signinButton">🔐
+      เข้าสู่ระบบ</button>
     <div id="result" class="mt-4 text-xl"></div>
   </div>
 
@@ -80,12 +84,30 @@
     <div id="rewardGrid" class="grid grid-cols-1 gap-4"></div>
   </div>
 
+  <!-- ===== Modal ดูรูป ===== -->
+  <div id="imageModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4 sm:p-6">
+    <!-- กล่อง -->
+    <div class="relative w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl
+              rounded-2xl bg-white shadow-xl overflow-hidden">
+      <!-- ปุ่มปิด -->
+      <button onclick="closeModal()" class="absolute top-2 right-2
+               grid place-items-center rounded-full bg-red-500 text-white
+               h-7 w-7 shadow">
+        ✕
+      </button>
+      <!-- รูป -->
+      <img id="modalImage" src="" alt="reward"
+        class="block w-full h-auto max-h-[70vh] sm:max-h-[80vh] object-contain bg-white">
+    </div>
+  </div>
+
   <!-- บัตรแต้มสะสม -->
   <div id="flipCardSection" class="w-full max-w-[360px] aspect-[2/3] mx-auto flex flex-col items-center hidden">
     <div class="card-container w-[50%] h-[50%]">
       <div id="flipCard" class="card w-full h-full relative">
-        <div class="card-face bg-[url('img/card.png')] bg-cover bg-center text-white p-1 rounded-xl shadow-lg flex flex-col justify-center items-center gap-3"
-             onclick="flipCard()">
+        <div
+          class="card-face bg-[url('img/card.png')] bg-cover bg-center text-white p-1 rounded-xl shadow-lg flex flex-col justify-center items-center gap-3"
+          onclick="flipCard()">
           <h1 class="mt-10">ข้อมูลลูกค้า</h1>
           <div class="flex flex-col justify-center gap-1 w-full text-center ">
             <p class="text-[0.8rem]">ชื่อ: <span id="nameText" class="text-[1rem]">-</span></p>
@@ -95,12 +117,14 @@
           </div>
         </div>
 
-        <div class="card-face card-back bg-[url('img/card.png')] bg-cover bg-center text-white p-6 rounded-xl shadow-lg flex flex-col justify-center items-center"
-             onclick="flipCard()">
+        <div
+          class="card-face card-back bg-[url('img/card.png')] bg-cover bg-center text-white p-6 rounded-xl shadow-lg flex flex-col justify-center items-center"
+          onclick="flipCard()">
           <div class="absolute mt-12 flex flex-col items-center justify-center w-full gap-3">
             <div id="qrCodeContainer" class="w-[50%] flex justify-center p-2 bg-white rounded"></div>
             <p id="qrPhoneLabel" class="text-[1rem] text-white font-semibold">-</p>
-            <button onclick="downloadQR(event)" class="bg-blue-500 hover:bg-blue-600 text-white text-sm rounded shadow p-1">ดาวน์โหลด QR Code</button>
+            <button onclick="downloadQR(event)"
+              class="bg-blue-500 hover:bg-blue-600 text-white text-sm rounded shadow p-1">ดาวน์โหลด QR Code</button>
           </div>
         </div>
       </div>
@@ -124,7 +148,42 @@
     </div>
   </div>
 
+  <!-- ✅ Modal: เปลี่ยนชื่อ -->
+  <div id="nameModal" class="fixed inset-0 z-[100] hidden">
+    <!-- backdrop -->
+    <div class="absolute inset-0 bg-black/50"></div>
+
+    <!-- card -->
+    <div id="nameCard" class="relative mx-auto mt-[12vh] w-[92%] max-w-md rounded-2xl bg-white p-5 shadow-xl
+              transition-all duration-150 ease-out opacity-0 translate-y-2">
+      <h3 class="text-lg font-semibold mb-3">🖋 เปลี่ยนชื่อสมาชิก</h3>
+
+      <label for="nameInput" class="block text-sm text-gray-600 mb-1">กรอกชื่อใหม่</label>
+      <input id="nameInput" type="text"
+        class="w-full rounded-xl border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        placeholder="เช่น น้องลูกประคำ" />
+
+      <p id="nameError" class="mt-2 text-sm text-red-600 hidden">กรุณากรอกชื่อ</p>
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button id="nameCancelBtn" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700">
+          ยกเลิก
+        </button>
+        <button id="nameSaveBtn"
+          class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">
+          บันทึก
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ Toast (แจ้งผลแบบไม่เด้งรบกวน) -->
+  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[120]
+            hidden rounded-xl bg-gray-900 text-white px-4 py-2 text-sm shadow-lg">
+  </div>
+
   <!-- โหลดสคริปต์แบบ ES Module -->
   <script type="module" src="app.js"></script>
 </body>
+
 </html>

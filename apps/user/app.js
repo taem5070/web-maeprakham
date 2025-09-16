@@ -7,12 +7,98 @@ import {
   getPublicRewards,
   getLatestRedeemLog,
   updateMemberLastRedeem,
+  db,
 } from "./api.js";
+
+import {
+  doc,
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  onSnapshot,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // === App settings ===
 const welcomePoints = 5;
 let flipped = false;
 let currentLang = "th";
+let unsubscribeMember = null;
+let unsubscribeLogs = null;
+
+// ===== Toast & Modal helpers =====
+const toastEl = document.getElementById("toast");
+const nameModal = document.getElementById("nameModal");
+const nameCard = document.getElementById("nameCard");
+const nameInput = document.getElementById("nameInput");
+const nameError = document.getElementById("nameError");
+const nameCancelBtn = document.getElementById("nameCancelBtn");
+const nameSaveBtn = document.getElementById("nameSaveBtn");
+
+let phoneForRename = null;
+
+function toast(msg, type = "info") {
+  if (!toastEl) return;
+  toastEl.textContent = msg;
+  toastEl.classList.remove("hidden");
+  toastEl.style.backgroundColor =
+    type === "success" ? "#16a34a" : type === "error" ? "#dc2626" : "#111827";
+  clearTimeout(toastEl._t);
+  toastEl._t = setTimeout(() => toastEl.classList.add("hidden"), 1800);
+}
+
+function openNameModal(phone, currentName = "") {
+  if (!nameModal) return;
+  phoneForRename = phone;
+  nameInput.value = currentName || "";
+  nameError.classList.add("hidden");
+  nameModal.classList.remove("hidden");
+  // play enter anim
+  requestAnimationFrame(() => {
+    nameCard.classList.remove("opacity-0", "translate-y-2");
+  });
+  setTimeout(() => nameInput.focus(), 50);
+}
+
+function closeNameModal() {
+  if (!nameModal) return;
+  nameCard.classList.add("opacity-0", "translate-y-2");
+  setTimeout(() => nameModal.classList.add("hidden"), 140);
+}
+
+// backdrop click to close
+if (nameModal) {
+  nameModal.addEventListener("click", (e) => { if (e.target === nameModal) closeNameModal(); });
+}
+if (nameCancelBtn) nameCancelBtn.addEventListener("click", closeNameModal);
+window.addEventListener("keydown", (e) => {
+  if (!nameModal || nameModal.classList.contains("hidden")) return;
+  if (e.key === "Escape") closeNameModal();
+  if (e.key === "Enter") submitRename();
+});
+
+async function submitRename() {
+  const newName = nameInput.value.trim();
+  if (!newName) {
+    nameError.classList.remove("hidden");
+    return;
+  }
+  nameSaveBtn.disabled = true;
+  try {
+    await updateMemberName(phoneForRename, newName);
+    const nameTextEl = document.getElementById("nameText");
+    if (nameTextEl) nameTextEl.innerText = newName;
+    toast("✅ เปลี่ยนชื่อสำเร็จ", "success");
+    closeNameModal();
+  } catch (err) {
+    console.error(err);
+    toast("❌ เปลี่ยนชื่อไม่สำเร็จ", "error");
+  } finally {
+    nameSaveBtn.disabled = false;
+  }
+}
+if (nameSaveBtn) nameSaveBtn.addEventListener("click", submitRename);
 
 // === I18N ===
 const translations = {
@@ -73,7 +159,7 @@ window.flipCard = function () {
   card.classList.toggle("flipped", flipped);
 };
 
-// === Google Drive image helper (ใช้สำหรับภาพรางวัลที่ฝากบน Drive — ไม่เกี่ยวกับ Google Sheet) ===
+// === Google Drive image helper ===
 function getDriveId(url) {
   if (!url) return "";
   const m1 = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
@@ -100,11 +186,14 @@ function rewardCard(item) {
   return `
     <div class="group relative overflow-hidden rounded-2xl ring-1 ring-black/5 shadow-sm hover:shadow-lg transition-all duration-300 bg-white">
       <figure class="relative">
-        <img src="${img}" alt="${title}" referrerpolicy="no-referrer" class="block w-full h-auto"
+        <img src="${img}" alt="${title}"
+             onclick="openModal('${img}')"
+             referrerpolicy="no-referrer"
+             class="block w-full h-auto cursor-pointer"
              onerror="this.onerror=null; this.src='${thumb}';">
-        <div class="absolute top-3 left-3 z-10 px-3 py-1 rounded-full text-xs font-semibold text-white
-                    bg-gradient-to-r from-rose-600 to-red-500 shadow-md">
-          ${pts} แต้ม
+        <div class="absolute top-3 left-3 z-10 px-3 py-1 rounded-full 
+            text-xs font-semibold text-black bg-white shadow-md">
+            ${pts} แต้ม
         </div>
         <figcaption class="absolute inset-x-0 bottom-0 p-4 pt-10
                            bg-gradient-to-t from-black/70 via-black/30 to-transparent">
@@ -117,7 +206,7 @@ function rewardCard(item) {
   `;
 }
 
-// === โหลดของรางวัลจาก Firestore (rewards_public) ===
+// === โหลดของรางวัลจาก Firestore ===
 async function loadRewards() {
   const grid = document.getElementById("rewardGrid");
   if (!grid) return;
@@ -150,10 +239,48 @@ function formatThaiBirthday(value) {
   return d.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" });
 }
 
+function listenMember(phone) {
+  const ref = doc(db, "members", phone);
+  unsubscribeMember = onSnapshot(ref, (snap) => {
+    if (snap.exists()) {
+      const data = snap.data();
+      document.getElementById("nameText").textContent = data.name || "-";
+      document.getElementById("pointsText").textContent = data.points ?? 0;
+      document.getElementById("rewardText").textContent = data.reward || "-";
+    }
+  });
+}
+
+function listenLatestRedeem(phone) {
+  const q = query(
+    collection(db, "redeem_logs"),
+    where("phone", "==", phone),
+    orderBy("createdAt", "desc"),
+    limit(1)
+  );
+  unsubscribeLogs = onSnapshot(q, (snapshot) => {
+    snapshot.forEach((doc) => {
+      const log = doc.data();
+      if (log.rewardName) {
+        document.getElementById("rewardText").textContent = log.rewardName;
+      }
+      if (log.createdAt) {
+        const t = log.createdAt.toDate ? log.createdAt.toDate() : new Date(log.createdAt);
+        document.getElementById("timeText").textContent = formatThaiDateTime(t);
+      }
+    });
+  });
+}
+
+function stopListeners() {
+  if (unsubscribeMember) unsubscribeMember();
+  if (unsubscribeLogs) unsubscribeLogs();
+}
+
 // === App lifecycle ===
 document.addEventListener("DOMContentLoaded", () => {
   applyTranslations();
-  ensureAnonymousSignIn(); // ให้ rules อ่านว่า isSignedIn() ได้
+  ensureAnonymousSignIn();
 
   // สลับหน้า
   window.toggleSection = function (id) {
@@ -173,6 +300,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!/^0\d{9}$/.test(phone) || !name) {
       resultDiv.innerHTML = `<p class="text-red-500">❌ กรุณากรอกชื่อและเบอร์ให้ถูกต้อง</p>`;
+      toast("กรุณากรอกข้อมูลให้ถูกต้อง", "error");
       return;
     }
 
@@ -180,7 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const existed = await getMember(phone);
       if (existed) {
         resultDiv.innerHTML = `<p class="text-red-500">⚠️ เบอร์นี้สมัครแล้ว: ${existed.name}</p>`;
-        alert("⚠️ เบอร์นี้ได้สมัครไว้แล้ว");
+        toast("เบอร์นี้สมัครแล้ว", "error");
         return;
       }
 
@@ -190,14 +318,14 @@ document.addEventListener("DOMContentLoaded", () => {
           ✅ สมัครสำเร็จในชื่อ: <strong>${saved.name || name}</strong>
           และได้รับ ${welcomePoints} แต้ม (รวมปัจจุบัน: ${saved.points ?? welcomePoints})
         </p>`;
-      alert(`✅ สมัครสำเร็จ! ได้รับ ${welcomePoints} แต้ม (รวม: ${saved.points ?? welcomePoints})`);
+      toast(`สมัครสำเร็จ! ได้รับ ${welcomePoints} แต้ม`, "success");
 
       document.getElementById("registerPhone").value = "";
       document.getElementById("registerName").value = "";
       document.getElementById("registerBirthday").value = "";
     } catch (err) {
       console.error(err);
-      alert("❌ ไม่สามารถเชื่อมต่อได้");
+      toast("ไม่สามารถเชื่อมต่อได้", "error");
     }
   };
 
@@ -205,23 +333,23 @@ document.addEventListener("DOMContentLoaded", () => {
   window.downloadQR = function (event) {
     event.stopPropagation();
     const qrCanvas = document.querySelector("#qrCodeContainer canvas");
-    if (!qrCanvas) return alert("QR ยังไม่พร้อม");
+    if (!qrCanvas) return toast("QR ยังไม่พร้อม", "error");
     const link = document.createElement("a");
     link.download = "qrcode.png";
     link.href = qrCanvas.toDataURL();
     link.click();
+    toast("ดาวน์โหลด QR แล้ว", "success");
   };
 
   // เข้าสู่ระบบ: อ่านข้อมูลตามเบอร์
-  // เข้าสู่ระบบ: อ่านข้อมูลตามเบอร์ (เวอร์ชันแก้เรียบร้อย)
   window.searchPhone = async function () {
     const phone = document.getElementById("searchPhone").value.trim();
-    if (!/^0\d{9}$/.test(phone)) return alert("❌ กรุณากรอกเบอร์ให้ถูกต้อง");
+    if (!/^0\d{9}$/.test(phone)) return toast("กรุณากรอกเบอร์ให้ถูกต้อง", "error");
 
     try {
       const data = await getMember(phone);
       if (!data) {
-        alert("❌ ไม่พบข้อมูลลูกค้า");
+        toast("ไม่พบข้อมูลลูกค้า", "error");
         return;
       }
 
@@ -236,7 +364,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("nameText").textContent = data.name || "-";
       document.getElementById("pointsText").textContent = data.points ?? 0;
 
-      // เวลาเริ่มต้นจาก members (กันโดนทับเป็นค่าว่าง)
+      // เวลาเริ่มต้นจาก members
       const timeEl = document.getElementById("timeText");
       const memberTime =
         (data.time && typeof data.time.toDate === "function")
@@ -248,12 +376,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // รางวัลเริ่มจาก members
       document.getElementById("rewardText").textContent = data.reward || "-";
-
-      // ซิงก์จาก redeem_logs → อัปเดต UI และเขียนกลับไปที่ members
+      listenMember(data.phone);
+      listenLatestRedeem(data.phone);
+      // sync จาก redeem_logs
       try {
         const latest = await getLatestRedeemLog(data.phone);
         if (latest && latest.rewardName) {
-          // อัปเดต UI จาก log (เชื่อถือได้สุด)
           document.getElementById("rewardText").textContent = latest.rewardName;
 
           const t = (latest.createdAt && typeof latest.createdAt.toDate === "function")
@@ -261,7 +389,6 @@ document.addEventListener("DOMContentLoaded", () => {
             : (latest.createdAt ? new Date(latest.createdAt) : null);
           if (t) timeEl.textContent = formatThaiDateTime(t);
 
-          // อัปเดตกลับไปที่ members ให้ตรงกับ log ล่าสุด
           await updateMemberLastRedeem(
             data.phone,
             latest.rewardName,
@@ -283,33 +410,49 @@ document.addEventListener("DOMContentLoaded", () => {
       // รีเซ็ตการ์ดเป็นด้านหน้า
       document.getElementById("flipCard").classList.remove("flipped");
       flipped = false;
+
+      toast("เข้าสู่ระบบสำเร็จ", "success");
     } catch (err) {
       console.error(err);
-      alert("❌ เกิดข้อผิดพลาด");
+      toast("เกิดข้อผิดพลาด", "error");
     }
   };
 
-  // เปลี่ยนชื่อ
-  window.changeName = async function (phone) {
-    const newName = prompt("🖋 กรอกชื่อใหม่:");
-    if (!newName?.trim()) return alert("⚠️ คุณยังไม่ได้กรอกชื่อใหม่");
-
-    try {
-      await updateMemberName(phone, newName);
-      document.getElementById("nameText").innerText = newName;
-      alert("✅ เปลี่ยนชื่อสำเร็จ!");
-    } catch (err) {
-      console.error(err);
-      alert("❌ เปลี่ยนชื่อไม่สำเร็จ");
-    }
+  // เปลี่ยนชื่อ → เปิดโมดัล (แทน prompt)
+  window.changeName = function (phone) {
+    const current = document.getElementById("nameText")?.innerText || "";
+    openNameModal(phone, current);
   };
 
   // ออกจากระบบ (ฝั่ง UI)
   window.logout = function () {
+    stopListeners();
     document.getElementById("search").classList.remove("hidden");
     document.getElementById("searchPhone").value = "";
     document.getElementById("flipCardSection").classList.add("hidden");
     document.getElementById("logoutBtn").classList.add("hidden");
-    alert("👋 ออกจากระบบแล้ว");
+    toast("ออกจากระบบแล้ว", "info");
   };
 });
+
+// ==== Modal functions (single source of truth) ====
+(() => {
+  const modal = document.getElementById("imageModal");
+  const imgEl = document.getElementById("modalImage");
+
+  window.openModal = (imgUrl) => {
+    imgEl.src = imgUrl;
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  };
+
+  window.closeModal = () => {
+    modal.classList.remove("flex");
+    modal.classList.add("hidden");
+  };
+
+  // ปิดเมื่อคลิกพื้นหลัง
+  modal?.addEventListener("click", (e) => {
+    if (e.target === modal) window.closeModal();
+  });
+})();

@@ -12,7 +12,7 @@ async function setAdmin(email) {
   console.log("✅ set role=admin for:", user.email);
 }
 
-setAdmin("taem5090@gmail.com").catch(console.error);
+setAdmin("maeprakham@gmail.com").catch(console.error);
 
 
 // คำสั้งตั้งเป็น เเอดมินจัดการ 

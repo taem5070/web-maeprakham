@@ -2,27 +2,31 @@
 import {
   sha256,
   getStaffByUsername,
-  getStaffProfile,
+  getStaffProfile,      // (เผื่อใช้ต่อยอด)
   listActiveRewards,
   addPointsToMember,
   redeemReward
 } from "./api.js";
 
-/* =============== LIFF =============== */
+/* ===================== LIFF ===================== */
 document.addEventListener("DOMContentLoaded", async () => {
-  try { await liff.init({ liffId: "2007661818-xObDmNRP" }); }
-  catch (e) { alert("LIFF init error: " + e); }
+  try {
+    // แก้ liffId ให้ตรงโปรเจกต์จริงของคุณ
+    await liff.init({ liffId: "2007661818-xObDmNRP" });
+  } catch (e) {
+    console.warn("LIFF init error:", e);
+  }
   restoreLogin();
 });
 
-/* =============== UI helpers =============== */
+/* ===================== Utilities ===================== */
 function withButton(btn, busyText, task) {
   const textEl = btn.querySelector("[data-text]") || btn;
   const spinEl = btn.querySelector("[data-spin]");
   const oldText = textEl.textContent;
 
   btn.disabled = true;
-  textEl.textContent = busyText || oldText;
+  if (busyText) textEl.textContent = busyText;
   if (spinEl) spinEl.classList.remove("hidden");
 
   return Promise.resolve()
@@ -44,13 +48,19 @@ function setStaffUI({ staffName, branchId }) {
   hello.classList.remove("hidden");
   bar.classList.remove("hidden");
 }
+
 function restoreLogin() {
   const staffId = localStorage.getItem("staffId");
   const staffName = localStorage.getItem("staffName");
   const branchId = localStorage.getItem("branchId");
   if (staffId && staffName) setStaffUI({ staffName, branchId });
 }
+
 function logoutStaff() {
+  // เผื่ออนาคตมี scanner ค้าง → ปิดก่อน
+  stopHtml5Scanner("add");
+  stopHtml5Scanner("redeem");
+
   localStorage.removeItem("staffId");
   localStorage.removeItem("staffName");
   localStorage.removeItem("branchId");
@@ -59,10 +69,16 @@ function logoutStaff() {
   document.getElementById("loginScreen").classList.remove("hidden");
 }
 
-// section toggle
+/* ===================== Section toggle ===================== */
 let currentVisibleId = null;
 function showSection(id) {
   const section = document.getElementById(id);
+  if (!section) return;
+
+  // ล้างผลลัพธ์/ฟอร์มเมื่อสลับหน้า
+  if (id !== "addPoints") document.getElementById("addPointResult").textContent = "";
+  if (id !== "redeem") document.getElementById("redeemResult").textContent = "";
+
   if (currentVisibleId === id) {
     section.style.display = "none";
     currentVisibleId = null;
@@ -71,12 +87,16 @@ function showSection(id) {
       sec.style.display = sec.id === id ? "block" : "none";
     });
     currentVisibleId = id;
-    if (id === "redeem") loadRewardsCatalog();
+
+    if (id === "redeem") {
+      loadRewardsCatalog();
+    }
+
     setTimeout(() => section.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
   }
 }
 
-/* =============== Auth (UI) =============== */
+/* ===================== Auth (UI) ===================== */
 async function login() {
   const user = document.getElementById("username").value.trim();
   const pass = document.getElementById("password").value.trim();
@@ -119,7 +139,13 @@ async function login() {
   });
 }
 
-/* =============== Add points (UI) =============== */
+/* ===================== Add points (UI) ===================== */
+function clearAddPointsForm() {
+  document.getElementById("billNumber").value = "";
+  document.getElementById("addPointPhone").value = "";
+  document.getElementById("amount").value = "";
+}
+
 async function addPoints() {
   const staffId = localStorage.getItem("staffId");
   if (!staffId) { alert("กรุณาเข้าสู่ระบบพนักงานก่อน"); return; }
@@ -130,21 +156,33 @@ async function addPoints() {
   const resultDiv = document.getElementById("addPointResult");
   const btn = document.getElementById("addPointBtn");
 
+  resultDiv.textContent = "";
+
   if (!/^[a-zA-Z0-9]{5,}$/.test(bill)) {
     resultDiv.innerHTML = '<p class="text-red-500">❌ เลขบิลต้องยาวอย่างน้อย 5 ตัว (A-Z, a-z, 0-9)</p>';
     return;
   }
-  if (!/^0\d{9}$/.test(phone)) { resultDiv.innerHTML = '<p class="text-red-500">❌ กรุณากรอกเบอร์โทร 10 หลักให้ถูกต้อง</p>'; return; }
-  if (isNaN(amount) || Number(amount) <= 0) { resultDiv.innerHTML = '<p class="text-red-500">❌ กรุณากรอกจำนวนเงินให้ถูกต้อง</p>'; return; }
-  if (Math.floor(Number(amount) / 100) === 0) { resultDiv.innerHTML = '<p class="text-red-500">❌ ยอดเงินต้องมากกว่า 100 บาทเพื่อรับแต้ม</p>'; return; }
+  if (!/^0\d{9}$/.test(phone)) {
+    resultDiv.innerHTML = '<p class="text-red-500">❌ กรุณากรอกเบอร์โทร 10 หลักให้ถูกต้อง</p>';
+    return;
+  }
+  if (isNaN(amount) || Number(amount) <= 0) {
+    resultDiv.innerHTML = '<p class="text-red-500">❌ กรุณากรอกจำนวนเงินให้ถูกต้อง</p>';
+    return;
+  }
+  if (Math.floor(Number(amount) / 100) === 0) {
+    resultDiv.innerHTML = '<p class="text-red-500">❌ ยอดเงินต้องมากกว่า 100 บาทเพื่อรับแต้ม</p>';
+    return;
+  }
 
   await withButton(btn, "กำลังเพิ่มแต้ม...", async () => {
     try {
       const { pointsAdded, staffProfile } = await addPointsToMember({ staffId, bill, phone, amount });
       resultDiv.innerHTML = `
         <p class="text-green-600">✅ เพิ่มแต้มสำเร็จ +${pointsAdded} แต้ม</p>
-        <p class="text-gray-600 text-sm">ผู้ทำรายการ: ${staffProfile.staffName || "-"} (สาขา: ${staffProfile.branchId || "-"})</p>
+        <p class="text-gray-600 text-sm">ผู้ทำรายการ: ${staffProfile?.staffName || "-"} (สาขา: ${staffProfile?.branchId || "-"})</p>
       `;
+      clearAddPointsForm();
     } catch (err) {
       if (err.code === "DUPLICATE_BILL") {
         resultDiv.innerHTML = `<p class="text-red-500">⚠️ เลขบิลซ้ำ: ${bill}</p>`;
@@ -157,12 +195,17 @@ async function addPoints() {
   });
 }
 
-/* =============== Redeem (UI) =============== */
+/* ===================== Redeem (UI) ===================== */
+function clearRedeemForm() {
+  document.getElementById("redeemPhone").value = "";
+  document.getElementById("rewardSelect").value = "";
+  document.getElementById("pointsHint").textContent = "";
+}
+
 async function redeemPoints() {
   const staffId = localStorage.getItem("staffId");
   const staffNameFromLS = localStorage.getItem("staffName") || "";
   const branchIdFromLS = localStorage.getItem("branchId") || "";
-
   if (!staffId) { alert("กรุณาเข้าสู่ระบบพนักงานก่อน"); return; }
 
   const phone = document.getElementById("redeemPhone").value.trim();
@@ -171,8 +214,14 @@ async function redeemPoints() {
   const resultDiv = document.getElementById("redeemResult");
   const redeemBtn = document.getElementById("redeemBtn");
 
+  resultDiv.textContent = "";
+
   if (!/^0\d{9}$/.test(phone) || !opt?.value) {
     resultDiv.innerHTML = '<p class="text-red-500">❌ กรุณากรอกเบอร์ และเลือกของรางวัล</p>';
+    return;
+  }
+  if (opt.disabled) {
+    resultDiv.innerHTML = '<p class="text-red-500">❌ ของรางวัลนี้หมดสต็อกแล้ว</p>';
     return;
   }
 
@@ -189,17 +238,22 @@ async function redeemPoints() {
         phone,
         rewardId
       });
-      resultDiv.innerHTML = `<p class="text-green-600">🎁 แลก “${res.rewardName || rewardNameText}” สำเร็จ! หักแต้ม ${res.pointsUsed || needPoints} แต้ม</p>`;
+
+      resultDiv.innerHTML = `<p class="text-green-600">🎁 แลก “${res.rewardName || rewardNameText}” สำเร็จ! หักแต้ม ${res.pointsUsed ?? needPoints} แต้ม</p>`;
+      clearRedeemForm();
+
+      // โหลดรายการใหม่ เผื่อ stock เปลี่ยน
+      await loadRewardsCatalog();
     } catch (e) {
       console.error("redeemPoints error:", e);
-      alert("❌ แลกไม่สำเร็จ: " + e.message);
+      alert("❌ แลกไม่สำเร็จ: " + (e.message || "Unknown error"));
     }
   });
 
   redeemBtn.disabled = !(sel.selectedOptions[0] && sel.selectedOptions[0].value);
 }
 
-/* =============== Catalog (UI) =============== */
+/* ===================== Catalog (UI) ===================== */
 async function loadRewardsCatalog() {
   const loading = document.getElementById("rewardLoading");
   const err = document.getElementById("rewardError");
@@ -239,7 +293,7 @@ async function loadRewardsCatalog() {
       const op = sel.selectedOptions[0];
       const p = op?.dataset.points || "";
       hint.textContent = p ? `ต้องใช้ ${p} แต้ม` : "";
-      redeemBtn.disabled = !(op && op.value);
+      redeemBtn.disabled = !(op && op.value) || (op && op.disabled);
       document.getElementById("redeemResult").textContent = "";
     };
   } catch (e) {
@@ -251,23 +305,100 @@ async function loadRewardsCatalog() {
   }
 }
 
-/* =============== QR scan (LIFF) =============== */
-async function startScannerForAddPoint() {
-  try {
-    const res = await liff.scanCodeV2();
-    document.getElementById("addPointPhone").value = res.value.trim();
-    alert("✅ สแกนสำเร็จ! กรอกจำนวนเงินเพื่อเพิ่มแต้ม");
-  } catch (err) { alert("❌ สแกนไม่ได้: " + err.message); }
-}
-async function startScannerForRedeem() {
-  try {
-    const res = await liff.scanCodeV2();
-    document.getElementById("redeemPhone").value = res.value.trim();
-    alert("✅ สแกนสำเร็จ! กรุณาเลือกของรางวัลแล้วกดแลก");
-  } catch (err) { alert("❌ สแกนไม่ได้: " + err.message); }
+/* ===================== QR Scan ===================== */
+/** html5-qrcode instance (fallback เมื่ออยู่นอก LIFF) */
+let html5QrAdd = null;
+let html5QrRedeem = null;
+
+function stopHtml5Scanner(kind /* 'add' | 'redeem' */) {
+  const map = {
+    add: { inst: html5QrAdd, elId: "reader-add" },
+    redeem: { inst: html5QrRedeem, elId: "reader" }
+  };
+  const m = map[kind];
+  if (!m) return;
+  const el = document.getElementById(m.elId);
+  if (m.inst) {
+    m.inst.stop().then(() => {
+      m.inst.clear();
+      if (el) el.classList.add("hidden");
+    }).catch(() => {
+      if (el) el.classList.add("hidden");
+    });
+  } else if (el) {
+    el.classList.add("hidden");
+  }
+  if (kind === "add") html5QrAdd = null;
+  if (kind === "redeem") html5QrRedeem = null;
 }
 
-/* =============== expose to HTML (onclick) =============== */
+async function startScannerForAddPoint() {
+  // ถ้าเปิดใน LINE (LIFF) ใช้สแกนเนอร์ของ LIFF
+  if (window.liff && liff.isInClient() && liff.scanCodeV2) {
+    try {
+      const res = await liff.scanCodeV2();
+      document.getElementById("addPointPhone").value = (res.value || "").trim();
+      alert("✅ สแกนสำเร็จ! กรอกจำนวนเงินเพื่อเพิ่มแต้ม");
+    } catch (err) {
+      alert("❌ สแกนไม่ได้: " + (err?.message || err));
+    }
+    return;
+  }
+
+  // Fallback: html5-qrcode
+  const reader = document.getElementById("reader-add");
+  reader.classList.remove("hidden");
+  try {
+    html5QrAdd = new Html5Qrcode("reader-add");
+    await html5QrAdd.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        document.getElementById("addPointPhone").value = (decodedText || "").trim();
+        stopHtml5Scanner("add");
+        alert("✅ สแกนสำเร็จ!");
+      },
+      () => {}
+    );
+  } catch (e) {
+    alert("❌ เปิดกล้องไม่สำเร็จ: " + (e?.message || e));
+    stopHtml5Scanner("add");
+  }
+}
+
+async function startScannerForRedeem() {
+  if (window.liff && liff.isInClient() && liff.scanCodeV2) {
+    try {
+      const res = await liff.scanCodeV2();
+      document.getElementById("redeemPhone").value = (res.value || "").trim();
+      alert("✅ สแกนสำเร็จ! กรุณาเลือกของรางวัลแล้วกดแลก");
+    } catch (err) {
+      alert("❌ สแกนไม่ได้: " + (err?.message || err));
+    }
+    return;
+  }
+
+  const reader = document.getElementById("reader");
+  reader.classList.remove("hidden");
+  try {
+    html5QrRedeem = new Html5Qrcode("reader");
+    await html5QrRedeem.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        document.getElementById("redeemPhone").value = (decodedText || "").trim();
+        stopHtml5Scanner("redeem");
+        alert("✅ สแกนสำเร็จ!");
+      },
+      () => {}
+    );
+  } catch (e) {
+    alert("❌ เปิดกล้องไม่สำเร็จ: " + (e?.message || e));
+    stopHtml5Scanner("redeem");
+  }
+}
+
+/* ===================== Expose ===================== */
 window.login = login;
 window.logoutStaff = logoutStaff;
 window.addPoints = addPoints;

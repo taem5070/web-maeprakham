@@ -1,0 +1,20 @@
+# เข้าโฟลเดอร์โปรเจกต์
+cd "C:\Users\User\OneDrive\เก่า\เดสก์ท็อป\web-Maeprakham-backend"
+
+# เริ่มเป็น repo ใหม่
+git init
+
+# เพิ่มไฟล์ทั้งหมด
+git add .
+
+# commit แรก
+git commit -m "init: upload project"
+
+# ตั้งชื่อ branch เป็น main
+git branch -M main
+
+# ผูกกับ repo บน GitHub (ใช้ URL ของทีมเอง)
+git remote add origin https://github.com/USERNAME/REPO.git
+
+# push ขึ้น GitHub
+git push -u origin main

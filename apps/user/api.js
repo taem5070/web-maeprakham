@@ -7,8 +7,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc,
-  collection, query, where, getDocs, serverTimestamp, orderBy, limit
+  collection, query, where, getDocs, serverTimestamp, orderBy, limit,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 
 // === ใส่ค่าจริงจาก Firebase Console ของคุณ ===
 const firebaseConfig = {

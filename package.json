@@ -55,5 +55,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taem5070/web-maeprakham.git"
+  },
+  "bugs": {
+    "url": "https://github.com/taem5070/web-maeprakham/issues"
+  },
+  "homepage": "https://github.com/taem5070/web-maeprakham#readme",
   "description": ""
 }
