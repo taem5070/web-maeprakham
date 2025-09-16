@@ -8,44 +8,36 @@ import {
   redeemReward
 } from "./api.js";
 
+/* ============ LIFF login helper (ไม่ init ซ้ำ) ============ */
 async function ensureLiffLogin() {
   if (!window.liff) return false;
-  try {
-    // กันกรณี init ยังไม่เสร็จ
-    if (!liff._init) {
-      await liff.init({ liffId: "2007661818-nmBNkzZ5" });
-    }
-  } catch (e) {
-    console.warn("LIFF re-init error:", e);
-  }
-
   if (!liff.isLoggedIn()) {
     liff.login({ redirectUri: window.location.href });
-    return false; // flow จะ redirect ไป login
+    return false; // จะ redirect ไป login แล้วกลับมา
   }
   return !!liff.getAccessToken();
 }
 
-/* ===================== LIFF ===================== */
+/* ============ Bootstrapping ============ */
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     await liff.init({ liffId: "2007661818-nmBNkzZ5" });
   } catch (e) {
     console.warn("LIFF init error:", e);
   }
-  // บังคับให้มี access_token ก่อนเข้าใช้งาน
+
+  // บังคับมี access_token
   const ok = await ensureLiffLogin();
-  if (!ok) return; // จะ redirect ไป login แล้วกลับมา
+  if (!ok) return;
+
+  // bind ปุ่ม Login (HTML ไม่มี onclick แล้ว)
+  const btn = document.getElementById("loginBtn");
+  if (btn) btn.addEventListener("click", login);
 
   restoreLogin();
 });
 
-document.addEventListener("DOMContentLoaded", () => {
-  const btn = document.getElementById("loginBtn");
-  if (btn) btn.addEventListener("click", login);
-});
-
-/* ===================== Utilities ===================== */
+/* ============ Utilities ============ */
 function withButton(btn, busyText, task) {
   const textEl = btn.querySelector("[data-text]") || btn;
   const spinEl = btn.querySelector("[data-spin]");
@@ -83,7 +75,6 @@ function restoreLogin() {
 }
 
 function logoutStaff() {
-  // เผื่ออนาคตมี scanner ค้าง → ปิดก่อน
   stopHtml5Scanner("add");
   stopHtml5Scanner("redeem");
 
@@ -95,13 +86,12 @@ function logoutStaff() {
   document.getElementById("loginScreen").classList.remove("hidden");
 }
 
-/* ===================== Section toggle ===================== */
+/* ============ Section toggle ============ */
 let currentVisibleId = null;
 function showSection(id) {
   const section = document.getElementById(id);
   if (!section) return;
 
-  // ล้างผลลัพธ์/ฟอร์มเมื่อสลับหน้า
   if (id !== "addPoints") document.getElementById("addPointResult").textContent = "";
   if (id !== "redeem") document.getElementById("redeemResult").textContent = "";
 
@@ -114,15 +104,13 @@ function showSection(id) {
     });
     currentVisibleId = id;
 
-    if (id === "redeem") {
-      loadRewardsCatalog();
-    }
+    if (id === "redeem") loadRewardsCatalog();
 
     setTimeout(() => section.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
   }
 }
 
-/* ===================== Auth (UI) ===================== */
+/* ============ Auth (UI) ============ */
 async function login() {
   const user = document.getElementById("username").value.trim();
   const pass = document.getElementById("password").value.trim();
@@ -148,7 +136,6 @@ async function login() {
         throw new Error("รหัสผ่านไม่ถูกต้อง");
       }
 
-      // session
       localStorage.setItem("staffId", staff.StaffID || staff.id);
       localStorage.setItem("staffName", staff.Name || user);
       localStorage.setItem("branchId", staff.BranchID || "");
@@ -165,7 +152,7 @@ async function login() {
   });
 }
 
-/* ===================== Add points (UI) ===================== */
+/* ============ Add points (UI) ============ */
 function clearAddPointsForm() {
   document.getElementById("billNumber").value = "";
   document.getElementById("addPointPhone").value = "";
@@ -184,22 +171,10 @@ async function addPoints() {
 
   resultDiv.textContent = "";
 
-  if (!/^[a-zA-Z0-9]{5,}$/.test(bill)) {
-    resultDiv.innerHTML = '<p class="text-red-500">❌ เลขบิลต้องยาวอย่างน้อย 5 ตัว (A-Z, a-z, 0-9)</p>';
-    return;
-  }
-  if (!/^0\d{9}$/.test(phone)) {
-    resultDiv.innerHTML = '<p class="text-red-500">❌ กรุณากรอกเบอร์โทร 10 หลักให้ถูกต้อง</p>';
-    return;
-  }
-  if (isNaN(amount) || Number(amount) <= 0) {
-    resultDiv.innerHTML = '<p class="text-red-500">❌ กรุณากรอกจำนวนเงินให้ถูกต้อง</p>';
-    return;
-  }
-  if (Math.floor(Number(amount) / 100) === 0) {
-    resultDiv.innerHTML = '<p class="text-red-500">❌ ยอดเงินต้องมากกว่า 100 บาทเพื่อรับแต้ม</p>';
-    return;
-  }
+  if (!/^[a-zA-Z0-9]{5,}$/.test(bill)) { resultDiv.innerHTML = '<p class="text-red-500">❌ เลขบิลต้องยาวอย่างน้อย 5 ตัว (A-Z, a-z, 0-9)</p>'; return; }
+  if (!/^0\d{9}$/.test(phone)) { resultDiv.innerHTML = '<p class="text-red-500">❌ กรุณากรอกเบอร์โทร 10 หลักให้ถูกต้อง</p>'; return; }
+  if (isNaN(amount) || Number(amount) <= 0) { resultDiv.innerHTML = '<p class="text-red-500">❌ กรุณากรอกจำนวนเงินให้ถูกต้อง</p>'; return; }
+  if (Math.floor(Number(amount) / 100) === 0) { resultDiv.innerHTML = '<p class="text-red-500">❌ ยอดเงินต้องมากกว่า 100 บาทเพื่อรับแต้ม</p>'; return; }
 
   await withButton(btn, "กำลังเพิ่มแต้ม...", async () => {
     try {
@@ -221,7 +196,7 @@ async function addPoints() {
   });
 }
 
-/* ===================== Redeem (UI) ===================== */
+/* ============ Redeem (UI) ============ */
 function clearRedeemForm() {
   document.getElementById("redeemPhone").value = "";
   document.getElementById("rewardSelect").value = "";
@@ -242,14 +217,8 @@ async function redeemPoints() {
 
   resultDiv.textContent = "";
 
-  if (!/^0\d{9}$/.test(phone) || !opt?.value) {
-    resultDiv.innerHTML = '<p class="text-red-500">❌ กรุณากรอกเบอร์ และเลือกของรางวัล</p>';
-    return;
-  }
-  if (opt.disabled) {
-    resultDiv.innerHTML = '<p class="text-red-500">❌ ของรางวัลนี้หมดสต็อกแล้ว</p>';
-    return;
-  }
+  if (!/^0\d{9}$/.test(phone) || !opt?.value) { resultDiv.innerHTML = '<p class="text-red-500">❌ กรุณากรอกเบอร์ และเลือกของรางวัล</p>'; return; }
+  if (opt.disabled) { resultDiv.innerHTML = '<p class="text-red-500">❌ ของรางวัลนี้หมดสต็อกแล้ว</p>'; return; }
 
   const rewardId = opt.value;
   const rewardNameText = opt.textContent.split("(")[0].trim();
@@ -267,9 +236,7 @@ async function redeemPoints() {
 
       resultDiv.innerHTML = `<p class="text-green-600">🎁 แลก “${res.rewardName || rewardNameText}” สำเร็จ! หักแต้ม ${res.pointsUsed ?? needPoints} แต้ม</p>`;
       clearRedeemForm();
-
-      // โหลดรายการใหม่ เผื่อ stock เปลี่ยน
-      await loadRewardsCatalog();
+      await loadRewardsCatalog(); // refresh stock
     } catch (e) {
       console.error("redeemPoints error:", e);
       alert("❌ แลกไม่สำเร็จ: " + (e.message || "Unknown error"));
@@ -279,7 +246,7 @@ async function redeemPoints() {
   redeemBtn.disabled = !(sel.selectedOptions[0] && sel.selectedOptions[0].value);
 }
 
-/* ===================== Catalog (UI) ===================== */
+/* ============ Catalog (UI) ============ */
 async function loadRewardsCatalog() {
   const loading = document.getElementById("rewardLoading");
   const err = document.getElementById("rewardError");
@@ -306,11 +273,9 @@ async function loadRewardsCatalog() {
     items.forEach(d => {
       const opt = document.createElement("option");
       const stock = Number(d.stock ?? 0);
-
       opt.value = d.reward_id;
       opt.textContent = `${d.reward_name} (${d.points} แต้ม)${stock <= 0 ? " — หมดสต็อก" : ""}`;
       if (stock <= 0) opt.disabled = true;
-
       opt.dataset.points = d.points;
       sel.appendChild(opt);
     });
@@ -331,12 +296,11 @@ async function loadRewardsCatalog() {
   }
 }
 
-/* ===================== QR Scan ===================== */
-/** html5-qrcode instance (fallback เมื่ออยู่นอก LIFF) */
+/* ============ QR Scan ============ */
 let html5QrAdd = null;
 let html5QrRedeem = null;
 
-function stopHtml5Scanner(kind /* 'add' | 'redeem' */) {
+function stopHtml5Scanner(kind) {
   const map = {
     add: { inst: html5QrAdd, elId: "reader-add" },
     redeem: { inst: html5QrRedeem, elId: "reader" }
@@ -359,11 +323,9 @@ function stopHtml5Scanner(kind /* 'add' | 'redeem' */) {
 }
 
 async function startScannerForAddPoint() {
-  // ใช้สแกนเนอร์ของ LINE เมื่ออยู่ใน LINE App
-  if (window.liff && liff.isInClient && liff.isInClient() && liff.scanCodeV2) {
+  if (window.liff && typeof liff.isInClient === "function" && liff.isInClient() && liff.scanCodeV2) {
     const ok = await ensureLiffLogin();
     if (!ok) return;
-
     try {
       const res = await liff.scanCodeV2();
       document.getElementById("addPointPhone").value = (res.value || "").trim();
@@ -374,7 +336,6 @@ async function startScannerForAddPoint() {
     return;
   }
 
-  // Fallback: ใช้ html5-qrcode เมื่อเปิดจากเบราว์เซอร์ทั่วไป
   const reader = document.getElementById("reader-add");
   reader.classList.remove("hidden");
   try {
@@ -386,8 +347,7 @@ async function startScannerForAddPoint() {
         document.getElementById("addPointPhone").value = (decodedText || "").trim();
         stopHtml5Scanner("add");
         alert("✅ สแกนสำเร็จ!");
-      },
-      () => { }
+      }
     );
   } catch (e) {
     alert("❌ เปิดกล้องไม่สำเร็จ: " + (e?.message || e));
@@ -396,10 +356,9 @@ async function startScannerForAddPoint() {
 }
 
 async function startScannerForRedeem() {
-  if (window.liff && liff.isInClient && liff.isInClient() && liff.scanCodeV2) {
+  if (window.liff && typeof liff.isInClient === "function" && liff.isInClient() && liff.scanCodeV2) {
     const ok = await ensureLiffLogin();
     if (!ok) return;
-
     try {
       const res = await liff.scanCodeV2();
       document.getElementById("redeemPhone").value = (res.value || "").trim();
@@ -421,8 +380,7 @@ async function startScannerForRedeem() {
         document.getElementById("redeemPhone").value = (decodedText || "").trim();
         stopHtml5Scanner("redeem");
         alert("✅ สแกนสำเร็จ!");
-      },
-      () => { }
+      }
     );
   } catch (e) {
     alert("❌ เปิดกล้องไม่สำเร็จ: " + (e?.message || e));
@@ -430,7 +388,7 @@ async function startScannerForRedeem() {
   }
 }
 
-/* ===================== Expose ===================== */
+/* ============ Expose to HTML (สำหรับ onclick อื่น ๆ) ============ */
 window.login = login;
 window.logoutStaff = logoutStaff;
 window.addPoints = addPoints;
