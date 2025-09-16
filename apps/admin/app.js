@@ -8,14 +8,35 @@ import {
   redeemReward
 } from "./api.js";
 
+async function ensureLiffLogin() {
+  if (!window.liff) return false;
+  try {
+    // กันกรณี init ยังไม่เสร็จ
+    if (!liff._init) {
+      await liff.init({ liffId: "2007661818-nmBNkzZ5" });
+    }
+  } catch (e) {
+    console.warn("LIFF re-init error:", e);
+  }
+
+  if (!liff.isLoggedIn()) {
+    liff.login({ redirectUri: window.location.href });
+    return false; // flow จะ redirect ไป login
+  }
+  return !!liff.getAccessToken();
+}
+
 /* ===================== LIFF ===================== */
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    // แก้ liffId ให้ตรงโปรเจกต์จริงของคุณ
     await liff.init({ liffId: "2007661818-xObDmNRP" });
   } catch (e) {
     console.warn("LIFF init error:", e);
   }
+  // บังคับให้มี access_token ก่อนเข้าใช้งาน
+  const ok = await ensureLiffLogin();
+  if (!ok) return; // จะ redirect ไป login แล้วกลับมา
+
   restoreLogin();
 });
 
@@ -333,8 +354,11 @@ function stopHtml5Scanner(kind /* 'add' | 'redeem' */) {
 }
 
 async function startScannerForAddPoint() {
-  // ถ้าเปิดใน LINE (LIFF) ใช้สแกนเนอร์ของ LIFF
-  if (window.liff && liff.isInClient() && liff.scanCodeV2) {
+  // ใช้สแกนเนอร์ของ LINE เมื่ออยู่ใน LINE App
+  if (window.liff && liff.isInClient && liff.isInClient() && liff.scanCodeV2) {
+    const ok = await ensureLiffLogin();
+    if (!ok) return;
+
     try {
       const res = await liff.scanCodeV2();
       document.getElementById("addPointPhone").value = (res.value || "").trim();
@@ -345,7 +369,7 @@ async function startScannerForAddPoint() {
     return;
   }
 
-  // Fallback: html5-qrcode
+  // Fallback: ใช้ html5-qrcode เมื่อเปิดจากเบราว์เซอร์ทั่วไป
   const reader = document.getElementById("reader-add");
   reader.classList.remove("hidden");
   try {
@@ -358,7 +382,7 @@ async function startScannerForAddPoint() {
         stopHtml5Scanner("add");
         alert("✅ สแกนสำเร็จ!");
       },
-      () => {}
+      () => { }
     );
   } catch (e) {
     alert("❌ เปิดกล้องไม่สำเร็จ: " + (e?.message || e));
@@ -367,7 +391,10 @@ async function startScannerForAddPoint() {
 }
 
 async function startScannerForRedeem() {
-  if (window.liff && liff.isInClient() && liff.scanCodeV2) {
+  if (window.liff && liff.isInClient && liff.isInClient() && liff.scanCodeV2) {
+    const ok = await ensureLiffLogin();
+    if (!ok) return;
+
     try {
       const res = await liff.scanCodeV2();
       document.getElementById("redeemPhone").value = (res.value || "").trim();
@@ -390,7 +417,7 @@ async function startScannerForRedeem() {
         stopHtml5Scanner("redeem");
         alert("✅ สแกนสำเร็จ!");
       },
-      () => {}
+      () => { }
     );
   } catch (e) {
     alert("❌ เปิดกล้องไม่สำเร็จ: " + (e?.message || e));
