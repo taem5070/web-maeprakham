@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login + Reward System</title>
 
   <!-- TailwindCSS -->
@@ -16,9 +17,12 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
   <style>
-    .section { display: none; }
+    .section {
+      display: none;
+    }
   </style>
 </head>
+
 <body class="bg-gray-100 min-h-screen p-6 flex justify-center">
 
   <!-- 🔐 Login -->
@@ -26,7 +30,7 @@
     <h2 class="text-2xl font-bold mb-4">🔐 Login</h2>
     <input id="username" type="text" placeholder="Username" class="border p-2 w-full rounded mb-3">
     <input id="password" type="password" placeholder="Password" class="border p-2 w-full rounded mb-3">
-    <button id="loginBtn" onclick="login()" class="bg-blue-500 hover:bg-blue-600 text-white w-full py-2 rounded">
+    <button id="loginBtn" class="bg-blue-500 hover:bg-blue-600 text-white w-full py-2 rounded">
       Login
     </button>
     <p id="errorMsg" class="text-red-500 mt-2 hidden">❌ โปรดใส่รหัสให้ถูกต้อง</p>
@@ -45,17 +49,17 @@
         </div>
       </div>
       <button id="logoutBtn" class="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-              onclick="logoutStaff()">ออกจากระบบ</button>
+        onclick="logoutStaff()">ออกจากระบบ</button>
     </div>
 
     <!-- เมนูหลัก -->
     <div class="flex flex-col gap-4">
       <!-- ปุ่มเมนูเปิดหน้า "เพิ่มแต้ม" (ไม่มีสปินเนอร์/ไม่มี id) -->
       <button class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded w-full"
-              onclick="showSection('addPoints')">➕ เพิ่มแต้ม</button>
+        onclick="showSection('addPoints')">➕ เพิ่มแต้ม</button>
 
-      <button class="bg-green-500 text-white font-bold py-2 px-4 rounded w-full"
-              onclick="showSection('redeem')">🎁 แลกของรางวัล</button>
+      <button class="bg-green-500 text-white font-bold py-2 px-4 rounded w-full" onclick="showSection('redeem')">🎁
+        แลกของรางวัล</button>
     </div>
 
     <!-- ➕ เพิ่มแต้ม -->
@@ -63,29 +67,25 @@
       <h2 class="text-xl font-bold mb-4">➕ เพิ่มแต้ม (100 บาท = 1 แต้ม)</h2>
 
       <input type="text" id="billNumber" placeholder="📄 เลขบิล (จำเป็นต้องกรอก)"
-             class="border p-2 w-full rounded mb-3">
-      <input type="text" id="addPointPhone" placeholder="📱 เบอร์โทรศัพท์"
-             class="border p-2 w-full rounded mb-3">
+        class="border p-2 w-full rounded mb-3">
+      <input type="text" id="addPointPhone" placeholder="📱 เบอร์โทรศัพท์" class="border p-2 w-full rounded mb-3">
 
-      <button onclick="startScannerForAddPoint()"
-              class="bg-purple-500 text-white py-2 rounded w-full mb-3">
+      <button onclick="startScannerForAddPoint()" class="bg-purple-500 text-white py-2 rounded w-full mb-3">
         📷 สแกน QR เพื่อกรอกเบอร์
       </button>
       <p class="text-xs text-gray-500 text-center mt-1 italic">
         📱 หลังสแกนเสร็จ โปรดกดปิดกล้อง (กากบาทด้านขวาบน)
       </p>
 
-      <input type="number" id="amount" placeholder="💵 จำนวนเงิน (บาท)"
-             class="border p-2 w-full rounded mb-3">
+      <input type="number" id="amount" placeholder="💵 จำนวนเงิน (บาท)" class="border p-2 w-full rounded mb-3">
 
       <!-- ปุ่มยืนยันเพิ่มแต้ม: มีสปินเนอร์ + id=addPointBtn -->
       <button id="addPointBtn" type="button" onclick="addPoints()"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-md
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-md
                      transition flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
         <svg data-spin class="h-5 w-5 animate-spin hidden" viewBox="0 0 24 24" fill="none">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor"
-                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
         </svg>
         <span data-text>➕ เพิ่มแต้ม</span>
       </button>
@@ -99,10 +99,9 @@
       <h2 class="text-xl font-bold mb-4">🎁 แลกของรางวัล</h2>
 
       <input type="text" id="redeemPhone" placeholder="📞 เบอร์โทรศัพท์ หรือสแกน QR"
-             class="border p-2 w-full rounded mb-3">
+        class="border p-2 w-full rounded mb-3">
 
-      <button onclick="startScannerForRedeem()"
-              class="bg-purple-500 text-white py-2 rounded w-full mb-3">
+      <button onclick="startScannerForRedeem()" class="bg-purple-500 text-white py-2 rounded w-full mb-3">
         📷 สแกน QR เพื่อกรอกเบอร์
       </button>
       <p class="text-xs text-gray-500 text-center mt-1 italic">
@@ -121,13 +120,11 @@
       <p id="rewardError" class="text-sm text-red-500 mt-1 hidden"></p>
 
       <!-- ปุ่มยืนยันแลก: มีสปินเนอร์ + id=redeemBtn -->
-      <button id="redeemBtn" onclick="redeemPoints()"
-              class="bg-green-600 text-white py-2 rounded w-full disabled:opacity-50 disabled:cursor-not-allowed
+      <button id="redeemBtn" onclick="redeemPoints()" class="bg-green-600 text-white py-2 rounded w-full disabled:opacity-50 disabled:cursor-not-allowed
                      flex items-center justify-center gap-2" disabled>
         <svg data-spin class="h-5 w-5 animate-spin hidden" viewBox="0 0 24 24" fill="none">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor"
-                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
         </svg>
         <span data-text>🎁 แลกของรางวัล</span>
       </button>
@@ -137,8 +134,9 @@
     </div>
 
   </div>
-<!-- สแกนเนอร์ QR -->
-<script src="https://unpkg.com/html5-qrcode" defer></script>
-<script type="module" src="./app.js"></script>
+  <!-- สแกนเนอร์ QR -->
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
+  <script type="module" src="app.js"></script>
 </body>
+
 </html>

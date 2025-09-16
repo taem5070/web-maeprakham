@@ -40,6 +40,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   restoreLogin();
 });
 
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("loginBtn");
+  if (btn) btn.addEventListener("click", login);
+});
+
 /* ===================== Utilities ===================== */
 function withButton(btn, busyText, task) {
   const textEl = btn.querySelector("[data-text]") || btn;
