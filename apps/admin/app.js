@@ -90,15 +90,18 @@ function showSection(id) {
   const section = document.getElementById(id);
   if (!section) return;
 
-  if (id !== "addPoints") document.getElementById("addPointResult").textContent = "";
-  if (id !== "redeem") document.getElementById("redeemResult").textContent = "";
+  // กัน null กรณี element ยังไม่มี/ถูกลบ
+  const addResEl = document.getElementById("addPointResult");
+  const redeemResEl = document.getElementById("redeemResult");
+  if (id !== "addPoints" && addResEl) addResEl.textContent = "";
+  if (id !== "redeem" && redeemResEl) redeemResEl.textContent = "";
 
   if (currentVisibleId === id) {
     section.style.display = "none";
     currentVisibleId = null;
   } else {
     document.querySelectorAll(".section").forEach((sec) => {
-      sec.style.display = sec.id === id ? "block" : "none";
+      sec.style.display = (sec.id === id) ? "block" : "none";
     });
     currentVisibleId = id;
 
