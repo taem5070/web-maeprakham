@@ -299,6 +299,7 @@ async function loadRewardsCatalog() {
 
 /* ============ QR Scan: Modal Popup (สี่เหลี่ยมจัตุรัส) ============ */
 let qrScanner = null;
+let qrStarted = false;   // ใช้เช็คว่าเริ่มสแกนสำเร็จแล้วหรือยัง
 
 function canUseLiffScanner() {
   return (window.liff && typeof liff.isInClient === "function" && liff.isInClient() && liff.scanCodeV2);
@@ -345,6 +346,7 @@ function openQrModal(kind) {
   container.innerHTML = ""; // reset instance
 
   qrScanner = new Html5Qrcode("qrReader");
+  qrStarted = false;
 
   qrScanner.start(
     { facingMode: "environment" },
@@ -353,29 +355,37 @@ function openQrModal(kind) {
       const value = (decodedText || "").trim();
       if (kind === "add") document.getElementById("addPointPhone").value = value;
       if (kind === "redeem") document.getElementById("redeemPhone").value = value;
-      closeQrModal();
+      closeQrModal(); // ปิดและ stop เมื่อสแกนสำเร็จ
       alert("✅ สแกนสำเร็จ!");
     }
-  ).catch(err => {
+  )
+  .then(() => { qrStarted = true; }) // เริ่มสำเร็จแล้ว
+  .catch(err => {
+    // เปิดกล้องไม่สำเร็จ: ปิด modal และเคลียร์ instance (อย่า stop เพราะยังไม่เริ่ม)
     alert("❌ เปิดกล้องไม่สำเร็จ: " + (err?.message || err));
-    closeQrModal();
+    if (modal) modal.classList.add("hidden");
+    try { if (qrScanner) qrScanner.clear(); } catch {}
+    qrScanner = null;
+    qrStarted = false;
   });
 }
 
-function closeQrModal(forceOnlyHide = false) {
+async function closeQrModal(forceOnlyHide = false) {
   const modal = document.getElementById("qrModal");
   if (modal) modal.classList.add("hidden");
-
   if (forceOnlyHide) return;
 
-  if (qrScanner) {
-    qrScanner.stop().then(() => {
-      qrScanner.clear();
-      qrScanner = null;
-    }).catch(() => {
-      qrScanner = null;
-    });
-  }
+  if (!qrScanner) return;
+
+  try {
+    if (qrStarted) {
+      await qrScanner.stop();   // stop เฉพาะกรณีเริ่มแล้ว
+    }
+  } catch (_) {}
+
+  try { await qrScanner.clear(); } catch (_) {}
+  qrScanner = null;
+  qrStarted = false;
 }
 
 /* ============ Expose to HTML ============ */
