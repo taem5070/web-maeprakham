@@ -297,13 +297,39 @@ async function loadRewardsCatalog() {
   }
 }
 
-/* ============ QR Scan: Modal Popup (สี่เหลี่ยมจัตุรัส) ============ */
-let qrScanner = null;
-let qrStarted = false;   // ใช้เช็คว่าเริ่มสแกนสำเร็จแล้วหรือยัง
+/* ============ QR Scan helpers ============ */
+function inSecureContext() {
+  return window.isSecureContext === true;
+}
 
 function canUseLiffScanner() {
-  return (window.liff && typeof liff.isInClient === "function" && liff.isInClient() && liff.scanCodeV2);
+  // ใช้ได้ก็ต่อเมื่ออยู่ใน LINE client จริง ๆ และมี API scanCodeV2
+  return !!(window.liff && typeof liff.isInClient === "function" && liff.isInClient() && typeof liff.scanCodeV2 === "function");
 }
+
+async function requireCameraPermissionOrExplain() {
+  if (!navigator.mediaDevices?.getUserMedia) return { ok: false, reason: "NO_API" };
+  if (!inSecureContext()) return { ok: false, reason: "NOT_SECURE" };
+
+  try {
+    // ใช้ permissions API ถ้ามี เพื่อบอกสถานะล่วงหน้า
+    if (navigator.permissions?.query) {
+      const st = await navigator.permissions.query({ name: "camera" });
+      if (st.state === "denied") return { ok: false, reason: "DENIED" };
+    }
+    // ขอสิทธิ์แบบสั้น ๆ (จะโชว์ prompt รอบแรก)
+    const s = await navigator.mediaDevices.getUserMedia({ video: true });
+    s.getTracks().forEach(t => t.stop());
+    return { ok: true };
+  } catch (err) {
+    const msg = (err && (err.name || err.message)) || "";
+    if (/NotAllowedError|Permission/i.test(msg)) return { ok: false, reason: "DENIED" };
+    return { ok: false, reason: "OTHER", err };
+  }
+}
+
+let qrScanner = null;
+let qrStarted = false;
 
 async function startScannerForAddPoint() {
   if (canUseLiffScanner()) {
@@ -311,12 +337,13 @@ async function startScannerForAddPoint() {
     if (!ok) return;
     try {
       const res = await liff.scanCodeV2();
-      document.getElementById("addPointPhone").value = (res.value || "").trim();
+      document.getElementById("addPointPhone").value = (res?.value || "").trim();
       alert("✅ สแกนสำเร็จ! กรอกจำนวนเงินเพื่อเพิ่มแต้ม");
+      return;
     } catch (err) {
-      alert("❌ สแกนไม่ได้: " + (err?.message || err));
+      alert("❌ สแกนด้วย LIFF ไม่สำเร็จ: " + (err?.message || err));
+      // ถ้าล้มเหลว ค่อย fallback ไป HTML5
     }
-    return;
   }
   openQrModal("add");
 }
@@ -327,47 +354,69 @@ async function startScannerForRedeem() {
     if (!ok) return;
     try {
       const res = await liff.scanCodeV2();
-      document.getElementById("redeemPhone").value = (res.value || "").trim();
+      document.getElementById("redeemPhone").value = (res?.value || "").trim();
       alert("✅ สแกนสำเร็จ! กรุณาเลือกของรางวัลแล้วกดแลก");
+      return;
     } catch (err) {
-      alert("❌ สแกนไม่ได้: " + (err?.message || err));
+      alert("❌ สแกนด้วย LIFF ไม่สำเร็จ: " + (err?.message || err));
     }
-    return;
   }
   openQrModal("redeem");
 }
 
-function openQrModal(kind) {
+async function openQrModal(kind) {
   const modal = document.getElementById("qrModal");
   const container = document.getElementById("qrReader");
   if (!modal || !container) return;
 
-  modal.classList.remove("hidden");
-  container.innerHTML = ""; // reset instance
-
-  qrScanner = new Html5Qrcode("qrReader");
-  qrStarted = false;
-
-  qrScanner.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: { width: 280, height: 280 } }, // กรอบสี่เหลี่ยมจัตุรัส
-    (decodedText) => {
-      const value = (decodedText || "").trim();
-      if (kind === "add") document.getElementById("addPointPhone").value = value;
-      if (kind === "redeem") document.getElementById("redeemPhone").value = value;
-      closeQrModal(); // ปิดและ stop เมื่อสแกนสำเร็จ
-      alert("✅ สแกนสำเร็จ!");
+  // ตรวจสิทธิ์ก่อน ถ้าโดนบล็อกจะอธิบายวิธีเปิดสิทธิ์
+  const perm = await requireCameraPermissionOrExplain();
+  if (!perm.ok) {
+    let how = "• เปิดผ่าน Chrome: แตะรูปกุญแจ > Site settings > Camera > Allow\n" +
+      "• เปิดผ่าน LINE: Settings > Apps > LINE > Permissions > เปิด Camera\nแล้วกลับมารีเฟรชหน้านี้";
+    if (perm.reason === "NOT_SECURE") {
+      how = "หน้านี้ต้องรันบน HTTPS เท่านั้น (ซึ่ง Vercel เป็น HTTPS แล้ว) ให้เปิดลิงก์ที่ขึ้นต้นด้วย https://";
     }
-  )
-  .then(() => { qrStarted = true; }) // เริ่มสำเร็จแล้ว
-  .catch(err => {
-    // เปิดกล้องไม่สำเร็จ: ปิด modal และเคลียร์ instance (อย่า stop เพราะยังไม่เริ่ม)
-    alert("❌ เปิดกล้องไม่สำเร็จ: " + (err?.message || err));
-    if (modal) modal.classList.add("hidden");
-    try { if (qrScanner) qrScanner.clear(); } catch {}
+    alert("❌ เบราว์เซอร์ยังไม่อนุญาตกล้อง\n\n" + how);
+    return;
+  }
+
+  modal.classList.remove("hidden");
+  container.innerHTML = "";
+
+  // เลือกกล้องหลังแบบ cameraId (เสถียรกว่า Android)
+  try {
+    const cams = await Html5Qrcode.getCameras();
+    const backCam = cams.find(c => /back|environment|rear/i.test(c.label)) || cams[0];
+    if (!backCam) throw new Error("ไม่พบกล้องในอุปกรณ์");
+
+    qrScanner = new Html5Qrcode("qrReader");
+    qrStarted = false;
+
+    await qrScanner.start(
+      backCam.id,
+      { fps: 10, qrbox: { width: 280, height: 280 } },
+      (decodedText) => {
+        const value = (decodedText || "").trim();
+        if (kind === "add") document.getElementById("addPointPhone").value = value;
+        if (kind === "redeem") document.getElementById("redeemPhone").value = value;
+        closeQrModal();
+        alert("✅ สแกนสำเร็จ!");
+      }
+    );
+    qrStarted = true;
+  } catch (err) {
+    const msg = err?.message || err;
+    if (/NotAllowedError|Permission/i.test(msg)) {
+      alert("❌ เปิดกล้องไม่สำเร็จ: เบราว์เซอร์บล็อกสิทธิ์กล้อง\n\nวิธีแก้:\n- Chrome: รูปกุญแจ > Site settings > Camera > Allow\n- LINE: Settings > Apps > LINE > Permissions > Camera = On");
+    } else {
+      alert("❌ เปิดกล้องไม่สำเร็จ: " + msg);
+    }
+    try { await qrScanner?.clear(); } catch { }
+    document.getElementById("qrModal")?.classList.add("hidden");
     qrScanner = null;
     qrStarted = false;
-  });
+  }
 }
 
 async function closeQrModal(forceOnlyHide = false) {
@@ -376,14 +425,8 @@ async function closeQrModal(forceOnlyHide = false) {
   if (forceOnlyHide) return;
 
   if (!qrScanner) return;
-
-  try {
-    if (qrStarted) {
-      await qrScanner.stop();   // stop เฉพาะกรณีเริ่มแล้ว
-    }
-  } catch (_) {}
-
-  try { await qrScanner.clear(); } catch (_) {}
+  try { if (qrStarted) await qrScanner.stop(); } catch { }
+  try { await qrScanner.clear(); } catch { }
   qrScanner = null;
   qrStarted = false;
 }
