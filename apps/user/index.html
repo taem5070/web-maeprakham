@@ -1,189 +1,260 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ระบบลูกค้า + แต้มสะสม</title>
-  <link rel="stylesheet" href="style.css">
+
+  <!-- Styles & Libraries -->
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
 </head>
 
-<body class="bg-gray-100 p-6 flex flex-col items-center min-h-screen">
-
-  <div class="header">
-    <div class="img max-w-96 mb-4">
-      <img src="img/6.png" alt="" class="w-full">
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4 md:p-6">
+  <!-- =============================== HEADER =============================== -->
+  <header class="w-full max-w-md">
+    <div class="mb-4 max-w-96 mx-auto">
+      <img src="img/6.png" alt="โลโก้แม่ประคำ" class="w-full" />
     </div>
-  </div>
 
-  <!-- ปุ่มเปลี่ยนภาษา -->
-  <div class="text-right w-full max-w-md mb-4">
-    <button id="langToggleBtn" onclick="toggleLanguage()" class="bg-blue-500 text-white px-3 py-1 rounded-lg"
-      data-i18n="langToggle">🌐 EN</button>
-  </div>
+    <!-- Language Switcher -->
+    <div class="mb-4 text-right">
+      <button
+        id="langToggleBtn"
+        onclick="toggleLanguage()"
+        class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg"
+        data-i18n="langToggle"
+        aria-label="สลับภาษา"
+      >
+        🌐 EN
+      </button>
+    </div>
+  </header>
 
-  <!-- ปุ่มเมนูหลัก -->
-  <div class="w-full flex justify-center mb-4">
-    <div class="w-full max-w-md space-y-4">
-      <div class="flex justify-between gap-4">
-        <button onclick="toggleSection('register')"
-          class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-full font-bold shadow">
-          <h1 data-i18n="signupTitle">📝 สมัครสมาชิก</h1>
+  <!-- ============================== MAIN NAV ============================== -->
+  <nav class="w-full max-w-md mb-4" aria-label="เมนูหลัก">
+    <div class="space-y-4">
+      <div class="flex gap-4">
+        <button
+          onclick="toggleSection('register')"
+          class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-full font-bold shadow"
+        >
+          <span data-i18n="signupTitle">📝 สมัครสมาชิก</span>
         </button>
-        <button onclick="toggleSection('search')"
-          class="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-full font-bold shadow">
-          <h1 data-i18n="signinTitle">🔐 เข้าสู่ระบบ</h1>
+        <button
+          onclick="toggleSection('search')"
+          class="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-full font-bold shadow"
+        >
+          <span data-i18n="signinTitle">🔐 เข้าสู่ระบบ</span>
         </button>
       </div>
-      <div class="flex justify-between gap-4">
-        <button onclick="toggleSection('rewardSection')"
-          class="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-full font-bold shadow">
-          <h1 data-i18n="rewardTitle">🎁 ของรางวัล</h1>
+
+      <div class="flex gap-4">
+        <button
+          onclick="toggleSection('rewardSection')"
+          class="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-full font-bold shadow"
+        >
+          <span data-i18n="rewardTitle">🎁 ของรางวัล</span>
         </button>
         <a href="https://www.facebook.com/Meaprakham01" target="_blank" class="flex-1">
           <button class="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-full font-bold shadow">
-            <h1 data-i18n="followTitle">📣 ติดตามข่าวสาร</h1>
+            <span data-i18n="followTitle">📣 ติดตามข่าวสาร</span>
           </button>
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 
-  <!-- สมัครสมาชิก -->
-  <div id="register" class="section hidden bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-    <h2 class="text-xl font-bold mb-4" data-i18n="registerHeader">📝 สมัครสมาชิก</h2>
-    <h2 class="font-bold mb-2" data-i18n="registerNote">(สมัครครั้งแรกรับไปเลย 5 แต้ม)</h2>
+  <!-- ============================== CONTENT ============================== -->
+  <main class="w-full max-w-md">
+    <!-- -------- สมัครสมาชิก -------- -->
+    <section id="register" class="section hidden bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-xl font-bold mb-2" data-i18n="registerHeader">📝 สมัครสมาชิก</h2>
+      <p class="font-bold mb-4" data-i18n="registerNote">(สมัครครั้งแรกรับไปเลย 5 แต้ม)</p>
 
-    <input id="registerName" type="text" placeholder="🧑 ชื่อเล่น (จำเป็น)" class="border rounded p-2 w-full mb-3" />
-    <input id="registerPhone" type="text" placeholder="📱 เบอร์โทร เช่น 0881234567"
-      class="border rounded p-2 w-full mb-3" />
+      <label for="registerName" class="sr-only">ชื่อเล่น</label>
+      <input
+        id="registerName"
+        type="text"
+        placeholder="🧑 ชื่อเล่น (จำเป็น)"
+        class="w-full mb-3 p-2 border rounded"
+      />
 
-    <label class="text-sm text-gray-700 mb-1 block">🎂 วันเกิด (ถ้าอยากรับโปรวันเกิด)</label>
-    <input id="registerBirthday" type="date" class="border rounded p-2 w-full mb-3" />
+      <label for="registerPhone" class="sr-only">เบอร์โทร</label>
+      <input
+        id="registerPhone"
+        type="text"
+        placeholder="📱 เบอร์โทร เช่น 0881234567"
+        class="w-full mb-3 p-2 border rounded"
+      />
 
-    <button onclick="registerUser()" class="bg-blue-500 text-white py-2 rounded w-full" data-i18n="registerButton">✅
-      สมัคร</button>
-    <div id="registerResult" class="mt-4 text-xl"></div>
-  </div>
+      <label class="block text-sm text-gray-700 mb-1">🎂 วันเกิด (ถ้าอยากรับโปรวันเกิด)</label>
+      <input id="registerBirthday" type="date" class="w-full mb-4 p-2 border rounded" />
 
-  <!-- เข้าสู่ระบบ -->
-  <div id="search" class="section hidden bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-    <h2 class="text-xl font-bold mb-4" data-i18n="signinTitle">🔐 เข้าสู่ระบบ</h2>
-    <input id="searchPhone" type="text" data-i18n-placeholder="signinPlaceholder" placeholder="📞 เบอรโทร"
-      class="border rounded p-2 w-full mb-3" />
-    <button onclick="searchPhone()" class="bg-green-500 text-white py-2 rounded w-full" data-i18n="signinButton">🔐
-      เข้าสู่ระบบ</button>
-    <div id="result" class="mt-4 text-xl"></div>
-  </div>
+      <button
+        onclick="registerUser()"
+        class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
+        data-i18n="registerButton"
+      >
+        ✅ สมัคร
+      </button>
 
-  <!-- ของรางวัล -->
-  <div id="rewardSection" class="section hidden bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-    <h2 class="text-lg font-semibold text-center mb-4" data-i18n="rewardTitle">🎁 ของรางวัล</h2>
-    <div id="rewardGrid" class="grid grid-cols-1 gap-4"></div>
-  </div>
+      <div id="registerResult" class="mt-4 text-xl"></div>
+    </section>
 
-  <!-- ===== Modal ดูรูป ===== -->
+    <!-- -------- เข้าสู่ระบบ -------- -->
+    <section id="search" class="section hidden bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-xl font-bold mb-4" data-i18n="signinTitle">🔐 เข้าสู่ระบบ</h2>
+
+      <label for="searchPhone" class="sr-only">เบอร์โทร</label>
+      <input
+        id="searchPhone"
+        type="text"
+        class="w-full mb-3 p-2 border rounded"
+        data-i18n-placeholder="signinPlaceholder"
+        placeholder="📞 เบอรโทร"
+      />
+
+      <button
+        onclick="searchPhone()"
+        class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded"
+        data-i18n="signinButton"
+      >
+        🔐 เข้าสู่ระบบ
+      </button>
+
+      <div id="result" class="mt-4 text-xl"></div>
+    </section>
+
+    <!-- -------- ของรางวัล -------- -->
+    <section id="rewardSection" class="section hidden bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-lg font-semibold text-center mb-4" data-i18n="rewardTitle">🎁 ของรางวัล</h2>
+      <div id="rewardGrid" class="grid grid-cols-1 gap-4"></div>
+    </section>
+  </main>
+
+  <!-- ============================== MODALS ============================== -->
+  <!-- Image Viewer Modal -->
   <div id="imageModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4 sm:p-6">
-    <!-- กล่อง -->
-    <div class="relative w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl
-              rounded-2xl bg-white shadow-xl overflow-hidden">
-      <!-- ปุ่มปิด -->
-      <button onclick="closeModal()" class="absolute top-2 right-2
-               grid place-items-center rounded-full bg-red-500 text-white
-               h-7 w-7 shadow">
+    <div class="relative w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden">
+      <button
+        onclick="closeModal()"
+        class="absolute top-2 right-2 h-7 w-7 grid place-items-center rounded-full bg-red-500 text-white shadow"
+        aria-label="ปิดรูปตัวอย่าง"
+      >
         ✕
       </button>
-      <!-- รูป -->
-      <img id="modalImage" src="" alt="reward"
-        class="block w-full h-auto max-h-[70vh] sm:max-h-[80vh] object-contain bg-white">
+      <img id="modalImage" src="" alt="reward" class="block w-full h-auto max-h-[80vh] object-contain bg-white" />
     </div>
   </div>
 
-  <!-- บัตรแต้มสะสม -->
-  <div id="flipCardSection" class="w-full max-w-[360px] aspect-[2/3] mx-auto flex flex-col items-center hidden">
-    <div class="card-container w-[50%] h-[50%]">
-      <div id="flipCard" class="card w-full h-full relative">
+  <!-- Flip Card: Member Card -->
+  <section id="flipCardSection" class="hidden w-full max-w-[360px] mx-auto">
+    <div class="card-container mx-auto aspect-[2/3] w-[50%] h-[50%]">
+      <div id="flipCard" class="card relative w-full h-full">
+        <!-- Front -->
         <div
-          class="card-face bg-[url('img/card.png')] bg-cover bg-center text-white p-1 rounded-xl shadow-lg flex flex-col justify-center items-center gap-3"
-          onclick="flipCard()">
-          <h1 class="mt-10">ข้อมูลลูกค้า</h1>
-          <div class="flex flex-col justify-center gap-1 w-full text-center ">
+          class="card-face bg-[url('img/card.png')] bg-cover bg-center text-white p-1 rounded-xl shadow-lg flex flex-col items-center justify-center gap-3"
+          onclick="flipCard()"
+        >
+          <h3 class="mt-10">ข้อมูลลูกค้า</h3>
+          <div class="w-full text-center flex flex-col gap-1">
             <p class="text-[0.8rem]">ชื่อ: <span id="nameText" class="text-[1rem]">-</span></p>
             <p class="text-[0.8rem]">วันเกิด: <span id="birthdayText" class="text-[0.8rem]">-</span></p>
-            <p class="text-[0.8rem]">แต้มสะสม: <span id="pointsText" class="text-[1.5rem]"></span> เเต้ม</p>
-            <p class="absolute right-0 left-0 bottom-3 text-sm mt-4 italic outline-violet-50">แตะเพื่อดู QR Code</p>
+            <p class="text-[0.8rem]">แต้มสะสม: <span id="pointsText" class="text-[1.5rem]"></span> แต้ม</p>
+            <p class="absolute left-0 right-0 bottom-3 mt-4 text-sm italic">แตะเพื่อดู QR Code</p>
           </div>
         </div>
 
+        <!-- Back -->
         <div
-          class="card-face card-back bg-[url('img/card.png')] bg-cover bg-center text-white p-6 rounded-xl shadow-lg flex flex-col justify-center items-center"
-          onclick="flipCard()">
-          <div class="absolute mt-12 flex flex-col items-center justify-center w-full gap-3">
-            <div id="qrCodeContainer" class="w-[50%] flex justify-center p-2 bg-white rounded"></div>
-            <p id="qrPhoneLabel" class="text-[1rem] text-white font-semibold">-</p>
-            <button onclick="downloadQR(event)"
-              class="bg-blue-500 hover:bg-blue-600 text-white text-sm rounded shadow p-1">ดาวน์โหลด QR Code</button>
+          class="card-face card-back bg-[url('img/card.png')] bg-cover bg-center text-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center"
+          onclick="flipCard()"
+        >
+          <div class="absolute mt-12 w-full flex flex-col items-center gap-3">
+            <!-- ✅ QR Wrapper: เพิ่มขอบขาว (quiet zone) และกำหนดขนาดชัดเจน -->
+            <div class="p-3 bg-white rounded-2xl border-8 border-white shadow-sm">
+              <div
+                id="qrCodeContainer"
+                class="w-[256px] h-[256px] flex items-center justify-center"
+                aria-label="QR Code"
+              ></div>
+            </div>
+            <p id="qrPhoneLabel" class="text-[1rem] font-semibold">-</p>
+            <button onclick="downloadQR(event)" class="text-sm bg-blue-500 hover:bg-blue-600 text-white rounded shadow px-3 py-1">
+              ดาวน์โหลด QR Code
+            </button>
+          </div>
+            <p id="qrPhoneLabel" class="text-[1rem] font-semibold">-</p>
+            <button onclick="downloadQR(event)" class="text-sm bg-blue-500 hover:bg-blue-600 text-white rounded shadow px-3 py-1">
+              ดาวน์โหลด QR Code
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="mt-4 flex flex-col justify-center">
-      <div class="justify-center">
+    <div class="mt-4 flex flex-col items-center">
+      <div class="text-center">
         <p>ของรางวัลล่าสุด: <span id="rewardText">-</span></p>
         <p>เวลาที่แลกล่าสุด: <span id="timeText">-</span></p>
       </div>
-      <div class="flex gap-2 justify-center">
-        <button id="changeNameBtn"
+      <div class="mt-2 flex gap-2">
+        <button
+          id="changeNameBtn"
           onclick="changeName(document.getElementById('qrPhoneLabel').textContent.replace('เบอร์โทร: ', ''))"
-          class="bg-yellow-400 text-white px-4 py-2 rounded shadow">
+          class="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded shadow"
+        >
           🖋 เปลี่ยนชื่อ
         </button>
-        <button id="logoutBtn" onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded shadow">
+        <button id="logoutBtn" onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded shadow">
           🔒 ออก
         </button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- ✅ Modal: เปลี่ยนชื่อ -->
+  <!-- Change Name Modal -->
   <div id="nameModal" class="fixed inset-0 z-[100] hidden">
-    <!-- backdrop -->
-    <div class="absolute inset-0 bg-black/50"></div>
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/50" aria-hidden="true"></div>
 
-    <!-- card -->
-    <div id="nameCard" class="relative mx-auto mt-[12vh] w-[92%] max-w-md rounded-2xl bg-white p-5 shadow-xl
-              transition-all duration-150 ease-out opacity-0 translate-y-2">
-      <h3 class="text-lg font-semibold mb-3">🖋 เปลี่ยนชื่อสมาชิก</h3>
+    <!-- Card -->
+    <div
+      id="nameCard"
+      class="relative mx-auto mt-[12vh] w-[92%] max-w-md rounded-2xl bg-white p-5 shadow-xl transition-all duration-150 ease-out opacity-0 translate-y-2"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="nameModalTitle"
+    >
+      <h3 id="nameModalTitle" class="text-lg font-semibold mb-3">🖋 เปลี่ยนชื่อสมาชิก</h3>
 
-      <label for="nameInput" class="block text-sm text-gray-600 mb-1">กรอกชื่อใหม่</label>
-      <input id="nameInput" type="text"
+      <label for="nameInput" class="block mb-1 text-sm text-gray-600">กรอกชื่อใหม่</label>
+      <input
+        id="nameInput"
+        type="text"
         class="w-full rounded-xl border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        placeholder="เช่น น้องลูกประคำ" />
-
+        placeholder="เช่น น้องลูกประคำ"
+      />
       <p id="nameError" class="mt-2 text-sm text-red-600 hidden">กรุณากรอกชื่อ</p>
 
       <div class="mt-5 flex justify-end gap-2">
-        <button id="nameCancelBtn" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700">
-          ยกเลิก
-        </button>
-        <button id="nameSaveBtn"
-          class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">
-          บันทึก
-        </button>
+        <button id="nameCancelBtn" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700">ยกเลิก</button>
+        <button id="nameSaveBtn" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60">บันทึก</button>
       </div>
     </div>
   </div>
 
-  <!-- ✅ Toast (แจ้งผลแบบไม่เด้งรบกวน) -->
-  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[120]
-            hidden rounded-xl bg-gray-900 text-white px-4 py-2 text-sm shadow-lg">
-  </div>
+  <!-- Toast -->
+  <div
+    id="toast"
+    class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[120] hidden rounded-xl bg-gray-900 text-white px-4 py-2 text-sm shadow-lg"
+    role="status"
+    aria-live="polite"
+  ></div>
 
-  <!-- โหลดสคริปต์แบบ ES Module -->
+  <!-- ============================== SCRIPTS ============================== -->
   <script type="module" src="app.js"></script>
 </body>
-
 </html>

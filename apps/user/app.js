@@ -405,7 +405,22 @@ document.addEventListener("DOMContentLoaded", () => {
       // สร้าง QR code
       const qrContainer = document.getElementById("qrCodeContainer");
       qrContainer.innerHTML = "";
-      new QRCode(qrContainer, { text: data.phone, width: 100, height: 100 });
+
+      // ✅ ขยายขนาด และเพิ่มระดับ error correction
+      new QRCode(qrContainer, {
+        text: data.phone,          // ข้อมูลที่ต้องการ encode
+        width: 256,                // ขนาดกว้าง
+        height: 256,               // ขนาดสูง
+        correctLevel: QRCode.CorrectLevel.M, // แนะนำใช้ M หรือ H
+        colorDark: "#000000",      // สี QR
+        colorLight: "#ffffff"      // สีพื้นหลัง (ขาวสนิท)
+      });
+
+      // ✅ ป้องกันเบลอในบางเครื่อง Android
+      const canvas = qrContainer.querySelector("canvas");
+      if (canvas) {
+        canvas.style.imageRendering = "pixelated";
+      }
 
       // รีเซ็ตการ์ดเป็นด้านหน้า
       document.getElementById("flipCard").classList.remove("flipped");
