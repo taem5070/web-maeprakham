@@ -277,6 +277,64 @@ function stopListeners() {
   if (unsubscribeLogs) unsubscribeLogs();
 }
 
+// === Birthday input mode (สลับปฏิทิน/พิมพ์เอง + แปลงวันที่) ===
+window.switchBirthdayMode = function (mode) {
+  const dateInput = document.getElementById('registerBirthday');
+  const textInput = document.getElementById('registerBirthdayText');
+  if (!dateInput || !textInput) return;
+
+  if (mode === 'manual') {
+    dateInput.classList.add('hidden');
+    textInput.classList.remove('hidden');
+    textInput.focus();
+  } else {
+    textInput.classList.add('hidden');
+    dateInput.classList.remove('hidden');
+  }
+};
+
+// แปลง "วว/ดด/ปปปป" (พ.ศ. หรือ ค.ศ.) -> yyyy-mm-dd (ค.ศ.) สำหรับ <input type="date">
+function toISOFromThaiInput(text) {
+  if (!text) return '';
+  const clean = text.trim().replace(/[^0-9/\-\s]/g, '').replace(/\s+/g, '/');
+  const m = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (!m) return '';
+
+  let d  = parseInt(m[1], 10);
+  let mo = parseInt(m[2], 10);
+  let y  = parseInt(m[3], 10);
+
+  // ถ้าเป็น พ.ศ. ให้ลบ 543
+  if (y > 2400) y -= 543;
+
+  // เช็คง่าย ๆ
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return '';
+
+  const dd = String(d).padStart(2, '0');
+  const mm = String(mo).padStart(2, '0');
+  return `${y}-${mm}-${dd}`;
+}
+
+// ใช้ก่อนสมัคร: ถ้าโหมด "พิมพ์เอง" จะเขียนค่าที่แปลงแล้วกลับไปที่ #registerBirthday แล้วค่อยเรียก registerUser()
+window.preRegister = function () {
+  const dateInput = document.getElementById('registerBirthday');
+  const textInput = document.getElementById('registerBirthdayText');
+  const useManual = textInput && !textInput.classList.contains('hidden');
+
+  if (useManual) {
+    const iso = toISOFromThaiInput(textInput.value);
+    if (!iso) {
+      alert('กรุณากรอกวันเกิดเป็นรูปแบบ วว/ดด/ปปปป (พ.ศ. หรือ ค.ศ.)');
+      textInput.focus();
+      return;
+    }
+    dateInput.value = iso;
+  }
+
+  // เรียกของเดิม
+  if (typeof window.registerUser === 'function') window.registerUser();
+};
+
 // === App lifecycle ===
 document.addEventListener("DOMContentLoaded", () => {
   applyTranslations();
