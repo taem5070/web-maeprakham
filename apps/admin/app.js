@@ -297,27 +297,21 @@ async function loadRewardsCatalog() {
   }
 }
 
-/* ============ QR Scan helpers ============ */
+/* ============ QR Scan helpers (Android LINE ใช้ LIFF เสมอ) ============ */
 function inSecureContext() {
   return window.isSecureContext === true;
 }
-
 function canUseLiffScanner() {
-  // ใช้ได้ก็ต่อเมื่ออยู่ใน LINE client จริง ๆ และมี API scanCodeV2
   return !!(window.liff && typeof liff.isInClient === "function" && liff.isInClient() && typeof liff.scanCodeV2 === "function");
 }
-
 async function requireCameraPermissionOrExplain() {
   if (!navigator.mediaDevices?.getUserMedia) return { ok: false, reason: "NO_API" };
   if (!inSecureContext()) return { ok: false, reason: "NOT_SECURE" };
-
   try {
-    // ใช้ permissions API ถ้ามี เพื่อบอกสถานะล่วงหน้า
     if (navigator.permissions?.query) {
       const st = await navigator.permissions.query({ name: "camera" });
       if (st.state === "denied") return { ok: false, reason: "DENIED" };
     }
-    // ขอสิทธิ์แบบสั้น ๆ (จะโชว์ prompt รอบแรก)
     const s = await navigator.mediaDevices.getUserMedia({ video: true });
     s.getTracks().forEach(t => t.stop());
     return { ok: true };
@@ -331,7 +325,9 @@ async function requireCameraPermissionOrExplain() {
 let qrScanner = null;
 let qrStarted = false;
 
+/* === สแกนสำหรับ “เพิ่มแต้ม” === */
 async function startScannerForAddPoint() {
+  // ถ้าอยู่ใน LINE ให้ใช้ LIFF เสมอ (แก้ NotAllowedError บน Android)
   if (canUseLiffScanner()) {
     const ok = await ensureLiffLogin();
     if (!ok) return;
@@ -342,12 +338,13 @@ async function startScannerForAddPoint() {
       return;
     } catch (err) {
       alert("❌ สแกนด้วย LIFF ไม่สำเร็จ: " + (err?.message || err));
-      // ถ้าล้มเหลว ค่อย fallback ไป HTML5
     }
   }
+  // นอก LINE (เช่น Chrome) ค่อยเปิดกล้องผ่าน html5-qrcode
   openQrModal("add");
 }
 
+/* === สแกนสำหรับ “แลกของรางวัล” === */
 async function startScannerForRedeem() {
   if (canUseLiffScanner()) {
     const ok = await ensureLiffLogin();
@@ -364,18 +361,18 @@ async function startScannerForRedeem() {
   openQrModal("redeem");
 }
 
+/* === Modal + html5-qrcode fallback === */
 async function openQrModal(kind) {
   const modal = document.getElementById("qrModal");
   const container = document.getElementById("qrReader");
   if (!modal || !container) return;
 
-  // ตรวจสิทธิ์ก่อน ถ้าโดนบล็อกจะอธิบายวิธีเปิดสิทธิ์
   const perm = await requireCameraPermissionOrExplain();
   if (!perm.ok) {
-    let how = "• เปิดผ่าน Chrome: แตะรูปกุญแจ > Site settings > Camera > Allow\n" +
-      "• เปิดผ่าน LINE: Settings > Apps > LINE > Permissions > เปิด Camera\nแล้วกลับมารีเฟรชหน้านี้";
+    let how = "• Chrome: แตะรูปกุญแจ > Site settings > Camera > Allow\n" +
+      "• LINE: Settings > Apps > LINE > Permissions > Camera = On\nแล้วกลับมารีเฟรชหน้านี้";
     if (perm.reason === "NOT_SECURE") {
-      how = "หน้านี้ต้องรันบน HTTPS เท่านั้น (ซึ่ง Vercel เป็น HTTPS แล้ว) ให้เปิดลิงก์ที่ขึ้นต้นด้วย https://";
+      how = "ต้องเปิดผ่าน HTTPS (เช่น https://web-…vercel.app)";
     }
     alert("❌ เบราว์เซอร์ยังไม่อนุญาตกล้อง\n\n" + how);
     return;
@@ -384,8 +381,8 @@ async function openQrModal(kind) {
   modal.classList.remove("hidden");
   container.innerHTML = "";
 
-  // เลือกกล้องหลังแบบ cameraId (เสถียรกว่า Android)
   try {
+    // เลือกกล้องหลังด้วย cameraId (เสถียรกว่า Android)
     const cams = await Html5Qrcode.getCameras();
     const backCam = cams.find(c => /back|environment|rear/i.test(c.label)) || cams[0];
     if (!backCam) throw new Error("ไม่พบกล้องในอุปกรณ์");
@@ -408,7 +405,7 @@ async function openQrModal(kind) {
   } catch (err) {
     const msg = err?.message || err;
     if (/NotAllowedError|Permission/i.test(msg)) {
-      alert("❌ เปิดกล้องไม่สำเร็จ: เบราว์เซอร์บล็อกสิทธิ์กล้อง\n\nวิธีแก้:\n- Chrome: รูปกุญแจ > Site settings > Camera > Allow\n- LINE: Settings > Apps > LINE > Permissions > Camera = On");
+      alert("❌ เปิดกล้องไม่สำเร็จ: สิทธิ์กล้องถูกบล็อก\n\nวิธีแก้:\n- Chrome: รูปกุญแจ > Site settings > Camera > Allow\n- LINE: Settings > Apps > LINE > Permissions > Camera = On");
     } else {
       alert("❌ เปิดกล้องไม่สำเร็จ: " + msg);
     }
