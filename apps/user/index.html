@@ -60,9 +60,7 @@
         </button>
 
         <a href="https://www.facebook.com/Meaprakham01" target="_blank" class="flex-1" rel="noopener">
-          <button
-            class="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-full font-bold shadow"
-          >
+          <button class="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-full font-bold shadow">
             <span data-i18n="followTitle">📣 ติดตามข่าวสาร</span>
           </button>
         </a>
@@ -137,11 +135,7 @@
     </section>
 
     <!-- -------- ของรางวัล -------- -->
-    <section
-      id="rewardSection"
-      class="section hidden bg-white p-6 rounded-lg shadow-md"
-      aria-labelledby="rewardHeader"
-    >
+    <section id="rewardSection" class="section hidden bg-white p-6 rounded-lg shadow-md" aria-labelledby="rewardHeader">
       <h2 id="rewardHeader" class="text-lg font-semibold text-center mb-4" data-i18n="rewardTitle">🎁 ของรางวัล</h2>
       <div id="rewardGrid" class="grid grid-cols-1 gap-4"></div>
     </section>
@@ -176,11 +170,11 @@
 
   <!-- Flip Card: Member Card -->
   <section id="flipCardSection" class="hidden w-full max-w-[360px] mx-auto" aria-label="บัตรสมาชิก">
-    <div class="card-container mx-auto aspect-[2/3] w-[50%] h-[50%]">
+    <div class="card-container mx-auto">
       <div id="flipCard" class="card relative w-full h-full">
         <!-- Front -->
         <div
-          class="card-face bg-[url('img/card.png')] bg-cover bg-center text-white p-1 rounded-xl shadow-lg flex flex-col items-center justify-center gap-3"
+          class="card-face overflow-hidden bg-[url('img/card.png')] bg-cover bg-center text-white p-1 rounded-xl shadow-lg flex flex-col items-center justify-center gap-3"
           onclick="flipCard()"
           role="button"
           aria-label="แตะเพื่อดู QR Code"
@@ -198,13 +192,13 @@
 
         <!-- Back -->
         <div
-          class="card-face card-back bg-[url('img/card.png')] bg-cover bg-center text-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center"
+          class="card-face card-back overflow-hidden bg-[url('img/card.png')] bg-cover bg-center text-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center"
           onclick="flipCard()"
           role="button"
           aria-label="แตะเพื่อกลับหน้าบัตร"
         >
           <div class="absolute mt-12 w-full flex flex-col items-center gap-3">
-            <div id="qrCodeContainer" class="w-[50%] p-2 bg-white rounded flex justify-center"></div>
+            <div id="qrCodeContainer" class="w-[180px] h-[180px] p-2 bg-white rounded flex justify-center"></div>
             <p id="qrPhoneLabel" class="text-[1rem] font-semibold">-</p>
             <button
               onclick="downloadQR(event)"
