@@ -327,20 +327,26 @@ let qrStarted = false;
 
 /* === สแกนสำหรับ “เพิ่มแต้ม” === */
 async function startScannerForAddPoint() {
-  // ถ้าอยู่ใน LINE ให้ใช้ LIFF เสมอ (แก้ NotAllowedError บน Android)
   if (canUseLiffScanner()) {
     const ok = await ensureLiffLogin();
     if (!ok) return;
     try {
       const res = await liff.scanCodeV2();
-      document.getElementById("addPointPhone").value = (res?.value || "").trim();
+      const value = (res && typeof res.value === "string") ? res.value.trim() : "";
+      if (!value) {
+        // ผู้ใช้กดยกเลิก/ไม่ส่งค่า -> เงียบๆ ไม่เด้งว่า “สำเร็จ”
+        return;
+      }
+      document.getElementById("addPointPhone").value = value;
       alert("✅ สแกนสำเร็จ! กรอกจำนวนเงินเพื่อเพิ่มแต้ม");
       return;
     } catch (err) {
-      alert("❌ สแกนด้วย LIFF ไม่สำเร็จ: " + (err?.message || err));
+      // ถ้าเป็นการยกเลิก ไม่ต้องเด้ง error
+      const msg = String(err?.message || err || "");
+      if (err?.code === "USER_CANCEL" || /cancel/i.test(msg)) return;
+      alert("❌ สแกนด้วย LIFF ไม่สำเร็จ: " + msg);
     }
   }
-  // นอก LINE (เช่น Chrome) ค่อยเปิดกล้องผ่าน html5-qrcode
   openQrModal("add");
 }
 
@@ -351,11 +357,18 @@ async function startScannerForRedeem() {
     if (!ok) return;
     try {
       const res = await liff.scanCodeV2();
-      document.getElementById("redeemPhone").value = (res?.value || "").trim();
+      const value = (res && typeof res.value === "string") ? res.value.trim() : "";
+      if (!value) {
+        // ผู้ใช้กดยกเลิก/ไม่ส่งค่า -> เงียบๆ
+        return;
+      }
+      document.getElementById("redeemPhone").value = value;
       alert("✅ สแกนสำเร็จ! กรุณาเลือกของรางวัลแล้วกดแลก");
       return;
     } catch (err) {
-      alert("❌ สแกนด้วย LIFF ไม่สำเร็จ: " + (err?.message || err));
+      const msg = String(err?.message || err || "");
+      if (err?.code === "USER_CANCEL" || /cancel/i.test(msg)) return;
+      alert("❌ สแกนด้วย LIFF ไม่สำเร็จ: " + msg);
     }
   }
   openQrModal("redeem");
